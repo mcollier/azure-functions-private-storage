@@ -1,0 +1,32 @@
+az login
+
+az configure --defaults group=function-private-storage-demo location=northcentralus
+
+az group create --name function-private-storage-demo --location northcentralus
+
+az network vnet create --location northcentralus --name function-private-storage-vnet --subnet-name default --address-prefix 10.0.0.0/16 --subnet-prefix 10.0.0.0/24
+az network vnet subnet update --vnet-name function-private-storage-vnet --name default --service-endpoints "Microsoft.Storage"
+
+az storage account create --location northcentralus --name funcdemoprivate20200416 --sku Standard_LRS
+az storage account network-rule add --action allow --account-name funcdemoprivate20200416 --vnet-name function-private-storage-vnet --subnet default
+
+az storage account create --name funcdemo20200416 --sku Standard_LRS
+
+az extension add --name application-insights
+az monitor app-insights component create --app function-private-storage-ai --kind web
+
+az functionapp plan create --name function-private-storage-p --sku EP1
+az functionapp create --name myprivatefunc20200416 --storage-account funcdemoprivate20200416 --plan function-private-storage-p --functions-version 3 --app-insights function-private-storage-ai --os-type Windows --runtime dotnet
+
+
+
+
+####
+dotnet build
+
+func azure functionapp publish myprivatefunc20200416 --publish-local-settings
+
+###
+az group create --name function-private-storage-demo-arm --location northcentralus
+#az deployment group validate -g function-private-storage-demo-arm --template-file azuredeploy.json --parameters azuredeploy.parameters.json --debug
+az deployment group create -g function-private-storage-demo-arm --template-file azuredeploy.json --parameters azuredeploy.parameters.json --debug

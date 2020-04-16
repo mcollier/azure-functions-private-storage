@@ -25,6 +25,9 @@
         },
         "virtualNetworks_functionsubnet_addressprefix": {
             "value": "10.0.0.0/24"
+        },
+        "function_repo_url": {
+            "value": "https://github.com/mcollier/azure-functions-private-storage.git"
         }
     }
 }

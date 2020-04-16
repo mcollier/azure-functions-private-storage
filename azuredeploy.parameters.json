@@ -1,0 +1,30 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "premiumfuncapp_name": {
+            "value": "mcprivate20200416"
+        },
+        "premiumfuncplan_name": {
+            "value": "mcprivate20200416-plan"
+        },
+        "storageaccount_name": {
+            "value": "mcprivate20200416"
+        },
+        "storageaccount_private_name": {
+            "value": "mcprivate20200416private"
+        },
+        "appinsights_name": {
+            "value": "mcprivate20200416-ai"
+        },
+        "virtualNetworks_functionvnet_name": {
+            "value": "mcprivate20200416-vnet"
+        },
+        "virtualNetworks_functionsubnet_name": {
+            "value": "FunctionSubnet"
+        },
+        "virtualNetworks_functionsubnet_addressprefix": {
+            "value": "10.0.0.0/24"
+        }
+    }
+}

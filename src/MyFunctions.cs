@@ -10,10 +10,10 @@ using Newtonsoft.Json;
 
 namespace Company.Function
 {
-    public static class HttpTriggerCSharp1
+    public static class MyFunctions
     {
         [FunctionName("HttpTriggerCSharp1")]
-        public static async Task<IActionResult> Run(
+        public static async Task<IActionResult> HelloWorldFunction(
             [HttpTrigger(AuthorizationLevel.Function, "get", "post", Route = null)] HttpRequest req,
             ILogger log)
         {
@@ -30,6 +30,14 @@ namespace Company.Function
                 : $"Hello, {name}. This HTTP triggered function executed successfully.";
 
             return new OkObjectResult(responseMessage);
+        }
+
+        [FunctionName("QueueTrigger")]
+        public static void GetMessagesFunctions(
+                    [QueueTrigger("%QueueName%", Connection = "PrivateEndpointStorage")] string queueItem,
+                    ILogger logger)
+        {
+            logger.LogInformation($"Queue trigger processed: {queueItem}");
         }
     }
 }

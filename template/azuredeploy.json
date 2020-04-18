@@ -548,6 +548,10 @@
                             "value": "~12"
                         },
                         {
+                            "name": "WEBSITE_VNET_ROUTE_ALL",
+                            "value": "1"
+                        },
+                        {
                             "name": "Project",
                             "value": "src"
                         }

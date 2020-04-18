@@ -2,6 +2,8 @@
 
 :construction: This is still under development! :construction:
 
+![Build .NET Core](https://github.com/mcollier/azure-functions-private-storage/workflows/Build%20.NET%20Core/badge.svg)
+
 This is a sample showing how to set up Azure Functions to use a vnet restricted (private) storage account.  
 
 ## Summary

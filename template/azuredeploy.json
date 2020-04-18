@@ -552,6 +552,10 @@
                             "value": "1"
                         },
                         {
+                            "name": "WEBSITE_DNS_SERVER",
+                            "value": "168.63.129.16"
+                        },
+                        {
                             "name": "Project",
                             "value": "src"
                         }

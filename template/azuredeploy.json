@@ -256,7 +256,8 @@
             "apiVersion": "2018-09-01",
             "name": "[concat(variables('privateDnsZoneName'), '/', variables('privateEndpointStorageAccountName'))]",
             "dependsOn": [
-                "[resourceId('Microsoft.Network/privateDnsZones', variables('privateDnsZoneName'))]"
+                "[resourceId('Microsoft.Network/privateDnsZones', variables('privateDnsZoneName'))]",
+                "[resourceId('Microsoft.Storage/storageAccounts', variables('privateEndpointStorageAccountName'))]"
             ],
             "properties": {
                 "ttl": 3600,

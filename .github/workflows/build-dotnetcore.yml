@@ -3,8 +3,10 @@ name: Build .NET Core
 on:
   push:
     branches: [ master ]
+    paths-ignore: ./template
   pull_request:
     branches: [ master ]
+    paths-ignore: ./template
 
 jobs:
   build:

@@ -1,5 +1,5 @@
 {
-    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
     "contentVersion": "1.0.0.0",
     "parameters": {
         "virtualMachineAdminUsername": {
@@ -13,6 +13,7 @@
         }
     },
     "variables": {
+        "deployCode": "No",
         "appInsightsResourceId": "[resourceId('Microsoft.Insights/components', variables('applicationInsightsName'))]",
         "resourcePrefix": "pfunc",
         "uniqueStringId": "[uniqueString(resourceGroup().id)]",
@@ -20,9 +21,9 @@
         "appServicePlanName": "[concat(variables('uniquePrefix'), '-plan')]",
         "functionAppName": "[concat(variables('uniquePrefix'), '-funcapp')]",
         "vnetName": "[concat(variables('uniquePrefix'), '-vnet')]",
-        "functionWebJobsStorageAccountName": "[concat(variables('uniquePrefix'), 'wjsa')]",
-        "privateEndpointStorageAccountName": "[concat(variables('uniquePrefix'), 'pe')]",
-        "functionAppContentStorageAccountName": "[concat(variables('uniquePrefix'), 'ac')]",
+        "functionWebJobsStorageAccountName": "[toLower(concat(variables('uniquePrefix'), 'wjsa'))]",
+        "privateEndpointStorageAccountName": "[toLower(concat(variables('uniquePrefix'), 'pe'))]",
+        "functionAppContentStorageAccountName": "[toLower(concat(variables('uniquePrefix'), 'ac'))]",
         "applicationInsightsName": "[concat(variables('uniquePrefix'), '-ai')]",
         "functionsSubnetName": "[concat(variables('uniquePrefix'), '-subnet-functions')]",
         "privateEndpointSubnetName": "[concat(variables('uniquePrefix'), '-subnet-privateendpoint')]",
@@ -37,6 +38,7 @@
         "dnsLabelPrefix": "[concat(variables('uniquePrefix'), '-vm')]",
         "bastionHostName": "[concat(variables('uniquePrefix'), '-bastion-host')]",
         "bastionSubnetName": "AzureBastionSubnet",
+        "vnetAddressPrefix": "10.0.0.0/16",
         "bastionSubnetAddressPrefix": "10.0.3.0/27",
         "vmSubnetAddressPrefix": "10.0.2.0/24",
         "functionSubnetAddressPrefix": "10.0.0.0/24",
@@ -233,7 +235,7 @@
             }
         },
         {
-            "type": "microsoft.insights/components",
+            "type": "Microsoft.Insights/components",
             "apiVersion": "2015-05-01",
             "location": "[resourceGroup().location]",
             "name": "[variables('applicationInsightsName')]",
@@ -254,13 +256,13 @@
             "apiVersion": "2018-09-01",
             "name": "[concat(variables('privateDnsZoneName'), '/', variables('privateEndpointStorageAccountName'))]",
             "dependsOn": [
-                "[resourceId('Microsoft.Storage/storageAccounts', variables('privateEndpointStorageAccountName'))]",
                 "[resourceId('Microsoft.Network/privateDnsZones', variables('privateDnsZoneName'))]"
             ],
             "properties": {
                 "ttl": 3600,
                 "aRecords": [
                     {
+                        // TODO: Find a way to NOT hard code this! :(
                         "ipv4Address": "10.0.1.4"
                     }
                 ]
@@ -319,7 +321,7 @@
             "properties": {
                 "addressSpace": {
                     "addressPrefixes": [
-                        "10.0.0.0/16"
+                        "[variables('vnetAddressPrefix')]"
                     ]
                 },
                 "subnets": [
@@ -397,7 +399,7 @@
         {
             "type": "Microsoft.Network/bastionHosts",
             "name": "[variables('bastionHostName')]",
-            "apiVersion": "2018-10-01",
+            "apiVersion": "2019-11-01",
             "location": "[resourceGroup().location]",
             "dependsOn": [
                 "[resourceId('Microsoft.Network/publicIpAddresses', variables('bastionPublicIPAddressName'))]",
@@ -544,46 +546,46 @@
                         {
                             "name": "WEBSITE_NODE_DEFAULT_VERSION",
                             "value": "~12"
+                        },
+                        {
+                            "name": "Project",
+                            "value": "src"
                         }
-                        // ,
-                        // {
-                        //     "name": "Project",
-                        //     "value": "src"
-                        // }
                     ]
                 }
             },
             "resources": [
                 {
                     "type": "config",
-                    "apiVersion": "2018-02-01",
-                    "name": "web",
+                    "apiVersion": "2019-08-01",
                     "dependsOn": [
-                        "[resourceId('Microsoft.Web/sites/',variables('functionAppName'))]"
+                        "[resourceId('Microsoft.Web/sites', variables('functionAppName'))]"
                     ],
+                    "name": "web",
                     "properties": {
                         // Enables VNET trigger support / runtime driven scale.
                         "functionsRuntimeScaleMonitoringEnabled": true
                     }
-                } //,
-                // {
-                //     "type": "sourcecontrols",
-                //     "apiVersion": "2018-11-01",
-                //     "name": "web",
-                //     "dependsOn": [
-                //         "[resourceId('Microsoft.Web/sites/',variables('functionAppName'))]"
-                //     ],
-                //     "properties": {
-                //         "branch": "master",
-                //         "repoUrl": "[parameters('function_repo_url')]",
-                //         "isManualIntegration": true
-                //     }
-                // }
+                },
+                {
+                    "condition": "[equals(variables('deployCode'), 'Yes')]",
+                    "type": "sourcecontrols",
+                    "apiVersion": "2019-08-01",
+                    "name": "web",
+                    "dependsOn": [
+                        "[resourceId('Microsoft.Web/sites', variables('functionAppName'))]"
+                    ],
+                    "properties": {
+                        "RepoUrl": "[parameters('function_repo_url')]",
+                        "branch": "master",
+                        "IsManualIntegration": true
+                    }
+                }
             ]
         },
         {
             "type": "Microsoft.Web/sites/networkConfig",
-            "apiVersion": "2016-08-01",
+            "apiVersion": "2018-02-01",
             "name": "[concat(variables('functionAppName'), '/VirtualNetwork')]",
             "dependsOn": [
                 "[concat('Microsoft.Web/sites/', variables('functionAppName'))]",

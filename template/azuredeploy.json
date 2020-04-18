@@ -82,10 +82,7 @@
             "type": "Microsoft.Storage/storageAccounts",
             "apiVersion": "2019-06-01",
             "location": "[resourceGroup().location]",
-            "dependsOn": [
-                "[resourceId('Microsoft.Network/virtualNetworks', variables('vnetName'))]"
-            ],
-            "name": "[variables('functionWebJobsStorageAccountName')]",
+            "name": "[variables('privateEndpointStorageAccountName')]",
             "sku": {
                 "name": "Standard_LRS",
                 "tier": "Standard"
@@ -95,10 +92,6 @@
                 "networkAcls": {
                     "bypass": "AzureServices",
                     "virtualNetworkRules": [
-                        {
-                            "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('vnetName'), variables('functionsSubnetName'))]",
-                            "action": "Allow"
-                        }
                     ],
                     "ipRules": [
                     ],
@@ -125,8 +118,9 @@
             "apiVersion": "2019-06-01",
             "location": "[resourceGroup().location]",
             "dependsOn": [
+                "[resourceId('Microsoft.Network/virtualNetworks', variables('vnetName'))]"
             ],
-            "name": "[variables('privateEndpointStorageAccountName')]",
+            "name": "[variables('functionWebJobsStorageAccountName')]",
             "sku": {
                 "name": "Standard_LRS",
                 "tier": "Standard"
@@ -136,6 +130,10 @@
                 "networkAcls": {
                     "bypass": "AzureServices",
                     "virtualNetworkRules": [
+                        {
+                            "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('vnetName'), variables('functionsSubnetName'))]",
+                            "action": "Allow"
+                        }
                     ],
                     "ipRules": [
                     ],
@@ -256,8 +254,8 @@
             "apiVersion": "2018-09-01",
             "name": "[concat(variables('privateDnsZoneName'), '/', variables('privateEndpointStorageAccountName'))]",
             "dependsOn": [
-                "[resourceId('Microsoft.Network/privateDnsZones', variables('privateDnsZoneName'))]",
-                "[resourceId('Microsoft.Storage/storageAccounts', variables('privateEndpointStorageAccountName'))]"
+                "[resourceId('Microsoft.Storage/storageAccounts', variables('privateEndpointStorageAccountName'))]",
+                "[resourceId('Microsoft.Network/privateDnsZones', variables('privateDnsZoneName'))]"
             ],
             "properties": {
                 "ttl": 3600,
@@ -371,6 +369,9 @@
                             "delegations": [
                             ],
                             "serviceEndpoints": [
+                                {
+                                    "service": "Microsoft.Storage"
+                                }
                             ],
                             "privateLinkServiceNetworkPolicies": "Enabled",
                             "privateEndpointNetworkPolicies": "Disabled"
@@ -543,28 +544,41 @@
                         {
                             "name": "WEBSITE_NODE_DEFAULT_VERSION",
                             "value": "~12"
-                        },
-                        {
-                            "name": "Project",
-                            "value": "src"
                         }
+                        // ,
+                        // {
+                        //     "name": "Project",
+                        //     "value": "src"
+                        // }
                     ]
                 }
             },
             "resources": [
                 {
-                    "type": "sourcecontrols",
-                    "apiVersion": "2018-11-01",
+                    "type": "config",
+                    "apiVersion": "2018-02-01",
                     "name": "web",
                     "dependsOn": [
                         "[resourceId('Microsoft.Web/sites/',variables('functionAppName'))]"
                     ],
                     "properties": {
-                        "branch": "master",
-                        "repoUrl": "[parameters('function_repo_url')]",
-                        "isManualIntegration": true
+                        // Enables VNET trigger support / runtime driven scale.
+                        "functionsRuntimeScaleMonitoringEnabled": true
                     }
-                }
+                } //,
+                // {
+                //     "type": "sourcecontrols",
+                //     "apiVersion": "2018-11-01",
+                //     "name": "web",
+                //     "dependsOn": [
+                //         "[resourceId('Microsoft.Web/sites/',variables('functionAppName'))]"
+                //     ],
+                //     "properties": {
+                //         "branch": "master",
+                //         "repoUrl": "[parameters('function_repo_url')]",
+                //         "isManualIntegration": true
+                //     }
+                // }
             ]
         },
         {

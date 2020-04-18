@@ -27,6 +27,7 @@
         "functionsSubnetName": "[concat(variables('uniquePrefix'), '-subnet-functions')]",
         "privateEndpointSubnetName": "[concat(variables('uniquePrefix'), '-subnet-privateendpoint')]",
         "privateEndpointName": "[concat(variables('uniquePrefix'), '-private-queue')]",
+        "privateDnsZoneName": "privatelink.queue.core.windows.net",
         "vmDiagnosticStorageAccountName": "[concat(variables('uniquePrefix'), 'vmdiag')]",
         "virtualMachineName": "[concat(variables('resourcePrefix'), '-vm')]",
         "vmNicName": "[concat(variables('uniquePrefix'), '-vm-nic')]",
@@ -244,6 +245,45 @@
             }
         },
         {
+            "type": "Microsoft.Network/privateDnsZones",
+            "apiVersion": "2018-09-01",
+            "name": "[variables('privateDnsZoneName')]",
+            "location": "global",
+            "properties": ""
+        },
+        {
+            "type": "Microsoft.Network/privateDnsZones/A",
+            "apiVersion": "2018-09-01",
+            "name": "[concat(variables('privateDnsZoneName'), '/', variables('privateEndpointStorageAccountName'))]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/privateDnsZones', variables('privateDnsZoneName'))]"
+            ],
+            "properties": {
+                "ttl": 3600,
+                "aRecords": [
+                    {
+                        "ipv4Address": "10.0.1.4"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
+            "apiVersion": "2018-09-01",
+            "name": "[concat(variables('privateDnsZoneName'), '/', variables('privateDnsZoneName'), '-link')]",
+            "location": "global",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/privateDnsZones', variables('privateDnsZoneName'))]",
+                "[resourceId('Microsoft.Network/virtualNetworks', variables('vnetName'))]"
+            ],
+            "properties": {
+                "registrationEnabled": false,
+                "virtualNetwork": {
+                    "id": "[resourceId('Microsoft.Network/virtualNetworks', variables('vnetName'))]"
+                }
+            }
+        },
+        {
             "type": "Microsoft.Network/privateEndpoints",
             "name": "[variables('privateEndpointName')]",
             "apiVersion": "2019-04-01",
@@ -330,13 +370,19 @@
                             "delegations": [
                             ],
                             "serviceEndpoints": [
-                            ]
+                            ],
+                            "privateLinkServiceNetworkPolicies": "Enabled",
+                            "privateEndpointNetworkPolicies": "Disabled"
                         }
                     },
                     {
                         "name": "[variables('bastionSubnetName')]",
                         "properties": {
-                            "addressPrefix": "[variables('bastionSubnetAddressPrefix')]"
+                            "addressPrefix": "[variables('bastionSubnetAddressPrefix')]",
+                            "delegations": [
+                            ],
+                            "privateEndpointNetworkPolicies": "Enabled",
+                            "privateLinkServiceNetworkPolicies": "Enabled"
                         }
                     }
                 ],

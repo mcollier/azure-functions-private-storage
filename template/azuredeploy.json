@@ -2,102 +2,51 @@
     "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
     "contentVersion": "1.0.0.0",
     "parameters": {
-        "premiumfuncapp_name": {
+        "virtualMachineAdminUsername": {
             "type": "string"
         },
-        "premiumfuncplan_name": {
-            "type": "string"
-        },
-        "storageaccount_name": {
-            "type": "string"
-        },
-        "storageaccount_private_name": {
-            "type": "string"
-        },
-        "appinsights_name": {
-            "type": "string"
-        },
-        "virtualNetworks_functionvnet_name": {
-            "type": "string"
-        },
-        "virtualNetworks_functionsubnet_name": {
-            "type": "string"
-        },
-        "virtualNetworks_functionsubnet_addressprefix": {
-            "type": "string"
+        "virtualMachineAdminPassword": {
+            "type": "securestring"
         },
         "function_repo_url": {
             "type": "string"
         }
     },
     "variables": {
-        "appInsightsResourceId": "[resourceId('Microsoft.Insights/components', parameters('appinsights_name'))]"
+        "appInsightsResourceId": "[resourceId('Microsoft.Insights/components', variables('applicationInsightsName'))]",
+        "resourcePrefix": "pfunc",
+        "uniqueStringId": "[uniqueString(resourceGroup().id)]",
+        "uniquePrefix": "[concat(variables('resourcePrefix'), variables('uniqueStringId'))]",
+        "appServicePlanName": "[concat(variables('uniquePrefix'), '-plan')]",
+        "functionAppName": "[concat(variables('uniquePrefix'), '-funcapp')]",
+        "vnetName": "[concat(variables('uniquePrefix'), '-vnet')]",
+        "functionWebJobsStorageAccountName": "[concat(variables('uniquePrefix'), 'wjsa')]",
+        "privateEndpointStorageAccountName": "[concat(variables('uniquePrefix'), 'pe')]",
+        "functionAppContentStorageAccountName": "[concat(variables('uniquePrefix'), 'ac')]",
+        "applicationInsightsName": "[concat(variables('uniquePrefix'), '-ai')]",
+        "functionsSubnetName": "[concat(variables('uniquePrefix'), '-subnet-functions')]",
+        "privateEndpointSubnetName": "[concat(variables('uniquePrefix'), '-subnet-privateendpoint')]",
+        "privateEndpointName": "[concat(variables('uniquePrefix'), '-private-queue')]",
+        "vmDiagnosticStorageAccountName": "[concat(variables('uniquePrefix'), 'vmdiag')]",
+        "virtualMachineName": "[concat(variables('resourcePrefix'), '-vm')]",
+        "vmNicName": "[concat(variables('uniquePrefix'), '-vm-nic')]",
+        "vmSubnetName": "[concat(variables('uniquePrefix'), '-subnet-vm')]",
+        "vmNsgName": "[concat(variables('uniquePrefix'), '-vm-nsg')]",
+        "bastionPublicIPAddressName": "[concat(variables('uniquePrefix'), '-bastion-pip')]",
+        "dnsLabelPrefix": "[concat(variables('uniquePrefix'), '-vm')]",
+        "bastionHostName": "[concat(variables('uniquePrefix'), '-bastion-host')]",
+        "bastionSubnetName": "AzureBastionSubnet",
+        "bastionSubnetAddressPrefix": "10.0.3.0/27",
+        "vmSubnetAddressPrefix": "10.0.2.0/24",
+        "functionSubnetAddressPrefix": "10.0.0.0/24",
+        "privateEndpointSubnetAddressPrefix": "10.0.1.0/24"
     },
     "resources": [
-        {
-            "type": "microsoft.insights/components",
-            "apiVersion": "2015-05-01",
-            "location": "[resourceGroup().location]",
-            "name": "[parameters('appinsights_name')]",
-            "kind": "web",
-            "properties": {
-                "Application_Type": "web"
-            }
-        },
-        {
-            "type": "Microsoft.Network/virtualNetworks",
-            "apiVersion": "2019-11-01",
-            "location": "[resourceGroup().location]",
-            "name": "[parameters('virtualNetworks_functionvnet_name')]",
-            "properties": {
-                "addressSpace": {
-                    "addressPrefixes": [
-                        "10.0.0.0/16"
-                    ]
-                },
-                "subnets": [
-                ],
-                "virtualNetworkPeerings": [
-                ],
-                "enableDdosProtection": false,
-                "enableVmProtection": false
-            }
-        },
-        {
-            "type": "Microsoft.Network/virtualNetworks/subnets",
-            "apiVersion": "2019-11-01",
-            "name": "[concat(parameters('virtualNetworks_functionvnet_name'), '/', parameters('virtualNetworks_functionsubnet_name'))]",
-            "location": "[resourceGroup().location]",
-            "dependsOn": [
-                "[resourceId('Microsoft.Network/virtualNetworks', parameters('virtualNetworks_functionvnet_name'))]"
-            ],
-            "properties": {
-                "addressPrefix": "[parameters('virtualNetworks_functionsubnet_addressprefix')]",
-                "privateEndpointNetworkPolicies": "Enabled",
-                "privateLinkServiceNetworkPolicies": "Enabled",
-                "serviceEndpoints": [
-                    {
-                        "service": "Microsoft.Storage"
-                    }
-                ],
-                "delegations": [
-                    {
-                        "name": "webapp",
-                        "properties": {
-                            "serviceName": "Microsoft.Web/serverFarms",
-                            "actions": [
-                                "Microsoft.Network/virtualNetworks/subnets/action"
-                            ]
-                        }
-                    }
-                ]
-            }
-        },
         {
             "type": "Microsoft.Storage/storageAccounts",
             "apiVersion": "2019-06-01",
             "location": "[resourceGroup().location]",
-            "name": "[parameters('storageaccount_name')]",
+            "name": "[variables('functionAppContentStorageAccountName')]",
             "sku": {
                 "name": "Standard_LRS",
                 "tier": "Standard"
@@ -133,9 +82,9 @@
             "apiVersion": "2019-06-01",
             "location": "[resourceGroup().location]",
             "dependsOn": [
-                "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('virtualNetworks_functionvnet_name'), parameters('virtualNetworks_functionsubnet_name'))]"
+                "[resourceId('Microsoft.Network/virtualNetworks', variables('vnetName'))]"
             ],
-            "name": "[parameters('storageaccount_private_name')]",
+            "name": "[variables('functionWebJobsStorageAccountName')]",
             "sku": {
                 "name": "Standard_LRS",
                 "tier": "Standard"
@@ -146,7 +95,7 @@
                     "bypass": "AzureServices",
                     "virtualNetworkRules": [
                         {
-                            "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('virtualNetworks_functionvnet_name'), parameters('virtualNetworks_functionsubnet_name'))]",
+                            "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('vnetName'), variables('functionsSubnetName'))]",
                             "action": "Allow"
                         }
                     ],
@@ -171,9 +120,322 @@
             }
         },
         {
+            "type": "Microsoft.Storage/storageAccounts",
+            "apiVersion": "2019-06-01",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+            ],
+            "name": "[variables('privateEndpointStorageAccountName')]",
+            "sku": {
+                "name": "Standard_LRS",
+                "tier": "Standard"
+            },
+            "kind": "StorageV2",
+            "properties": {
+                "networkAcls": {
+                    "bypass": "AzureServices",
+                    "virtualNetworkRules": [
+                    ],
+                    "ipRules": [
+                    ],
+                    "defaultAction": "Deny"
+                },
+                "supportsHttpsTrafficOnly": true,
+                "encryption": {
+                    "services": {
+                        "file": {
+                            "keyType": "Account",
+                            "enabled": true
+                        },
+                        "blob": {
+                            "keyType": "Account",
+                            "enabled": true
+                        }
+                    },
+                    "keySource": "Microsoft.Storage"
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Storage/storageAccounts",
+            "apiVersion": "2019-04-01",
+            "name": "[variables('vmDiagnosticStorageAccountName')]",
+            "location": "[resourceGroup().location]",
+            "sku": {
+                "name": "Standard_LRS"
+            },
+            "kind": "Storage",
+            "properties": {
+            }
+        },
+        {
+            "type": "Microsoft.Compute/virtualMachines",
+            "apiVersion": "2019-03-01",
+            "name": "[variables('virtualMachineName')]",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Storage/storageAccounts/', variables('vmDiagnosticStorageAccountName'))]",
+                "[resourceId('Microsoft.Network/networkInterfaces/', variables('vmNicName'))]"
+            ],
+            "properties": {
+                "hardwareProfile": {
+                    "vmSize": "Standard_D2_v3"
+                },
+                "osProfile": {
+                    "computerName": "[variables('virtualMachineName')]",
+                    "adminUsername": "[parameters('virtualMachineAdminUsername')]",
+                    "adminPassword": "[parameters('virtualMachineAdminPassword')]"
+                },
+                "storageProfile": {
+                    "imageReference": {
+                        "publisher": "MicrosoftWindowsDesktop",
+                        "offer": "Windows-10",
+                        "sku": "rs5-pro",
+                        "version": "latest"
+                    },
+                    "osDisk": {
+                        "createOption": "FromImage"
+                    }
+                },
+                "networkProfile": {
+                    "networkInterfaces": [
+                        {
+                            "id": "[resourceId('Microsoft.Nework/networkInterfaces', variables('vmNicName'))]"
+                        }
+                    ]
+                },
+                "diagnosticsProfile": {
+                    "bootDiagnostics": {
+                        "enabled": true,
+                        "storageUri": "[reference(resourceId('Microsoft.Storage/storageAccounts/', variables('vmDiagnosticStorageAccountName'))).primaryEndpoints.blob]"
+                    }
+                }
+            }
+        },
+        {
+            "type": "Microsoft.DevTestLab/schedules",
+            "name": "[concat('shutdown-computevm-', variables('virtualMachineName'))]",
+            "apiVersion": "2018-09-15",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[concat('Microsoft.Compute/virtualMachines/', variables('virtualMachineName'))]"
+            ],
+            "properties": {
+                "status": "Enabled",
+                "taskType": "ComputeVmShutdownTask",
+                "dailyRecurrence": {
+                    "time": "1900"
+                },
+                "timeZoneId": "UTC",
+                "notificationSettings": {
+                    "status": "Disabled"
+                },
+                "targetResourceId": "[resourceId('Microsoft.Compute/virtualMachines',variables('virtualMachineName'))]"
+            }
+        },
+        {
+            "type": "microsoft.insights/components",
+            "apiVersion": "2015-05-01",
+            "location": "[resourceGroup().location]",
+            "name": "[variables('applicationInsightsName')]",
+            "kind": "web",
+            "properties": {
+                "Application_Type": "web"
+            }
+        },
+        {
+            "type": "Microsoft.Network/privateEndpoints",
+            "name": "[variables('privateEndpointName')]",
+            "apiVersion": "2019-04-01",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Storage/storageAccounts', variables('privateEndpointStorageAccountName'))]",
+                "[resourceId('Microsoft.Network/virtualNetworks', variables('vnetName'))]"
+            ],
+            "properties": {
+                "subnet": {
+                    "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('vnetName'), variables('privateEndpointSubnetName') )]"
+                },
+                "privateLinkServiceConnections": [
+                    {
+                        "name": "MyConnection",
+                        "properties": {
+                            "privateLinkServiceId": "[resourceId('Microsoft.Storage/storageAccounts', variables('privateEndpointStorageAccountName'))]",
+                            "groupIds": [
+                                "queue"
+                            ]
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "type": "Microsoft.Network/virtualNetworks",
+            "apiVersion": "2019-11-01",
+            "location": "[resourceGroup().location]",
+            "name": "[variables('vnetName')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/networkSecurityGroups/', variables('vmNsgName'))]"
+            ],
+            "properties": {
+                "addressSpace": {
+                    "addressPrefixes": [
+                        "10.0.0.0/16"
+                    ]
+                },
+                "subnets": [
+                    {
+                        "name": "[variables('functionsSubnetName')]",
+                        "properties": {
+                            "addressPrefix": "[variables('functionSubnetAddressPrefix')]",
+                            "privateEndpointNetworkPolicies": "Enabled",
+                            "privateLinkServiceNetworkPolicies": "Enabled",
+                            "serviceEndpoints": [
+                                {
+                                    "service": "Microsoft.Storage"
+                                }
+                            ],
+                            "delegations": [
+                                {
+                                    "name": "webapp",
+                                    "properties": {
+                                        "serviceName": "Microsoft.Web/serverFarms",
+                                        "actions": [
+                                            "Microsoft.Network/virtualNetworks/subnets/action"
+                                        ]
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "name": "[variables('privateEndpointSubnetName')]",
+                        "properties": {
+                            "addressPrefix": "[variables('privateEndpointSubnetAddressPrefix')]",
+                            "serviceEndpoints": [
+                            ],
+                            "delegations": [
+                            ],
+                            "privateLinkServiceNetworkPolicies": "Enabled",
+                            "privateEndpointNetworkPolicies": "Disabled"
+                        }
+                    },
+                    {
+                        "name": "[variables('vmSubnetName')]",
+                        "properties": {
+                            "addressPrefix": "[variables('vmSubnetAddressPrefix')]",
+                            "networkSecurityGroup": {
+                                "id": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('vmNsgName'))]"
+                            },
+                            "delegations": [
+                            ],
+                            "serviceEndpoints": [
+                            ]
+                        }
+                    },
+                    {
+                        "name": "[variables('bastionSubnetName')]",
+                        "properties": {
+                            "addressPrefix": "[variables('bastionSubnetAddressPrefix')]"
+                        }
+                    }
+                ],
+                "virtualNetworkPeerings": [
+                ],
+                "enableDdosProtection": false,
+                "enableVmProtection": false
+            }
+        },
+        {
+            "type": "Microsoft.Network/bastionHosts",
+            "name": "[variables('bastionHostName')]",
+            "apiVersion": "2018-10-01",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/publicIpAddresses', variables('bastionPublicIPAddressName'))]",
+                "[resourceId('Microsoft.Network/virtualNetworks', variables('vnetName'))]"
+            ],
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "IpConf",
+                        "properties": {
+                            "subnet": {
+                                "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('vnetName'), variables('BastionSubnetName'))]"
+                            },
+                            "publicIPAddress": {
+                                "id": "[resourceId('Microsoft.Network/publicIpAddresses', variables('bastionPublicIPAddressName'))]"
+                            }
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "type": "Microsoft.Network/networkInterfaces",
+            "apiVersion": "2018-11-01",
+            "name": "[variables('vmNicName')]",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/virtualNetworks/', variables('vnetName'))]"
+            ],
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "ipconfig1",
+                        "properties": {
+                            "privateIPAllocationMethod": "Dynamic",
+                            "subnet": {
+                                "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('vnetName'), variables('vmSubnetName'))]"
+                            }
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "type": "Microsoft.Network/publicIPAddresses",
+            "apiVersion": "2018-11-01",
+            "name": "[variables('bastionPublicIPAddressName')]",
+            "location": "[resourceGroup().location]",
+            "sku": {
+                "name": "Standard"
+            },
+            "properties": {
+                "publicIPAllocationMethod": "Static",
+                "dnsSettings": {
+                    "domainNameLabel": "[variables('dnsLabelPrefix')]"
+                }
+            }
+        },
+        {
+            "apiVersion": "2019-04-01",
+            "type": "Microsoft.Network/networkSecurityGroups",
+            "name": "[variables('vmNsgName')]",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "securityRules": [
+                    {
+                        "name": "Block_RDP_Internet",
+                        "properties": {
+                            "description": "Block RDP",
+                            "protocol": "Tcp",
+                            "sourcePortRange": "*",
+                            "destinationPortRange": "3389",
+                            "sourceAddressPrefix": "Internet",
+                            "destinationAddressPrefix": "*",
+                            "access": "Deny",
+                            "priority": 101,
+                            "direction": "Inbound"
+                        }
+                    }
+                ]
+            }
+        },
+        {
             "type": "Microsoft.Web/serverfarms",
             "apiVersion": "2018-02-01",
-            "name": "[parameters('premiumfuncplan_name')]",
+            "name": "[variables('appServicePlanName')]",
             "location": "[resourceGroup().location]",
             "sku": {
                 "name": "EP1",
@@ -190,18 +452,18 @@
         {
             "type": "Microsoft.Web/sites",
             "apiVersion": "2018-11-01",
-            "name": "[parameters('premiumfuncapp_name')]",
+            "name": "[variables('functionAppName')]",
             "location": "[resourceGroup().location]",
             "dependsOn": [
-                "[resourceId('Microsoft.Web/serverfarms', parameters('premiumfuncplan_name'))]",
-                "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageaccount_name'))]",
-                "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageaccount_private_name'))]"
+                "[resourceId('Microsoft.Web/serverfarms', variables('appServicePlanName'))]",
+                "[resourceId('Microsoft.Storage/storageAccounts', variables('functionWebJobsStorageAccountName'))]",
+                "[resourceId('Microsoft.Storage/storageAccounts', variables('functionAppContentStorageAccountName'))]"
             ],
             "kind": "functionapp",
             "properties": {
-                "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', parameters('premiumfuncplan_name'))]",
+                "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', variables('appServicePlanName'))]",
                 "siteConfig": {
-                    "vnetName": "[concat('bead47e1-d65e-4cb4-b907-f74674d32c09_', parameters('virtualNetworks_functionsubnet_name'))]",
+                    "vnetName": "[concat('bead47e1-d65e-4cb4-b907-f74674d32c09_', variables('functionsSubnetName'))]",
                     "appSettings": [
                         {
                             "name": "APPINSIGHTS_INSTRUMENTATIONKEY",
@@ -213,7 +475,7 @@
                         },
                         {
                             "name": "AzureWebJobsStorage",
-                            "value": "[concat('DefaultEndpointsProtocol=https;AccountName=',parameters('storageaccount_private_name'),';AccountKey=',listkeys(resourceId('Microsoft.Storage/storageAccounts', parameters('storageaccount_private_name')), '2018-11-01').keys[0].value,';')]"
+                            "value": "[concat('DefaultEndpointsProtocol=https;AccountName=',variables('functionWebJobsStorageAccountName'),';AccountKey=',listkeys(resourceId('Microsoft.Storage/storageAccounts', variables('functionWebJobsStorageAccountName')), '2018-11-01').keys[0].value,';')]"
                         },
                         {
                             "name": "FUNCTIONS_EXTENSION_VERSION",
@@ -225,11 +487,11 @@
                         },
                         {
                             "name": "WEBSITE_CONTENTAZUREFILECONNECTIONSTRING",
-                            "value": "[concat('DefaultEndpointsProtocol=https;AccountName=',parameters('storageaccount_name'),';AccountKey=',listkeys(resourceId('Microsoft.Storage/storageAccounts', parameters('storageaccount_name')), '2018-11-01').keys[0].value,';')]"
+                            "value": "[concat('DefaultEndpointsProtocol=https;AccountName=',variables('functionAppContentStorageAccountName'),';AccountKey=',listkeys(resourceId('Microsoft.Storage/storageAccounts', variables('functionAppContentStorageAccountName')), '2018-11-01').keys[0].value,';')]"
                         },
                         {
                             "name": "WEBSITE_CONTENTSHARE",
-                            "value": "[parameters('premiumfuncplan_name')]"
+                            "value": "[variables('appServicePlanName')]"
                         },
                         {
                             "name": "WEBSITE_NODE_DEFAULT_VERSION",
@@ -248,7 +510,7 @@
                     "apiVersion": "2018-11-01",
                     "name": "web",
                     "dependsOn": [
-                        "[resourceId('Microsoft.Web/sites/', parameters('premiumfuncapp_name'))]"
+                        "[resourceId('Microsoft.Web/sites/',variables('functionAppName'))]"
                     ],
                     "properties": {
                         "branch": "master",
@@ -261,13 +523,13 @@
         {
             "type": "Microsoft.Web/sites/networkConfig",
             "apiVersion": "2016-08-01",
-            "name": "[concat(parameters('premiumfuncapp_name'), '/VirtualNetwork')]",
+            "name": "[concat(variables('functionAppName'), '/VirtualNetwork')]",
             "dependsOn": [
-                "[concat('Microsoft.Web/sites/', parameters('premiumfuncapp_name'))]",
-                "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('virtualNetworks_functionvnet_name'), parameters('virtualNetworks_functionsubnet_name'))]"
+                "[concat('Microsoft.Web/sites/', variables('functionAppName'))]",
+                "[resourceId('Microsoft.Network/virtualNetworks', variables('vnetName'))]"
             ],
             "properties": {
-                "subnetResourceId": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('virtualNetworks_functionvnet_name'), parameters('virtualNetworks_functionsubnet_name'))]",
+                "subnetResourceId": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('vnetName'), variables('functionsSubnetName'))]",
                 "isSwift": true
             }
         }

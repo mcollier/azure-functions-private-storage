@@ -252,23 +252,6 @@
             "properties": ""
         },
         {
-            "type": "Microsoft.Network/privateDnsZones/A",
-            "apiVersion": "2018-09-01",
-            "name": "[concat(variables('privateDnsZoneName'), '/', variables('privateEndpointStorageAccountName'))]",
-            "dependsOn": [
-                "[resourceId('Microsoft.Network/privateDnsZones', variables('privateDnsZoneName'))]"
-            ],
-            "properties": {
-                "ttl": 3600,
-                "aRecords": [
-                    {
-                        // TODO: Find a way to NOT hard code this! :(
-                        "ipv4Address": "10.0.1.4"
-                    }
-                ]
-            }
-        },
-        {
             "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
             "apiVersion": "2018-09-01",
             "name": "[concat(variables('privateDnsZoneName'), '/', variables('privateDnsZoneName'), '-link')]",
@@ -604,5 +587,19 @@
                 "isSwift": true
             }
         }
-    ]
+    ],
+    "outputs": {
+        "privateEndpointNetworkInterface": {
+            "type": "string",
+            "value": "[reference(concat('Microsoft.Network/privateEndpoints/', variables('privateEndpointName'))).networkInterfaces[0].id]"
+        },
+        "privateEndpointStorageAccountName": {
+            "type": "string",
+            "value": "[variables('privateEndpointStorageAccountName')]"
+        },
+        "privateDNSRecordName": {
+            "type": "string",
+            "value": "[concat(variables('privateDnsZoneName'), '/', variables('privateEndpointStorageAccountName'))]"
+        }
+    }
 }

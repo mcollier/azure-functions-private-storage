@@ -28,12 +28,15 @@
         "functionsSubnetName": "[concat(variables('uniquePrefix'), '-subnet-functions')]",
         "privateEndpointSubnetName": "[concat(variables('uniquePrefix'), '-subnet-privateendpoint')]",
         "privateEndpointName": "[concat(variables('uniquePrefix'), '-private-queue')]",
+        "privateEndpointCosmosDbName": "[concat(variables('uniquePrefix'), '-private-cosmosdb')]",
         "privateDnsZoneName": "privatelink.queue.core.windows.net",
+        "privateCosmosDbDnsZoneName": "privatelink.documents.core.windows.net",
         "vmDiagnosticStorageAccountName": "[concat(variables('uniquePrefix'), 'vmdiag')]",
         "virtualMachineName": "[concat(variables('resourcePrefix'), '-vm')]",
         "vmNicName": "[concat(variables('uniquePrefix'), '-vm-nic')]",
         "vmSubnetName": "[concat(variables('uniquePrefix'), '-subnet-vm')]",
         "vmNsgName": "[concat(variables('uniquePrefix'), '-vm-nsg')]",
+        "privateCosmosDbAccountName": "[concat(variables('uniquePrefix'), '-cosmosdb-private')]",
         "bastionPublicIPAddressName": "[concat(variables('uniquePrefix'), '-bastion-pip')]",
         "dnsLabelPrefix": "[concat(variables('uniquePrefix'), '-vm')]",
         "bastionHostName": "[concat(variables('uniquePrefix'), '-bastion-host')]",
@@ -170,6 +173,31 @@
             }
         },
         {
+            "type": "Microsoft.DocumentDB/databaseAccounts",
+            "name": "[variables('privateCosmosDbAccountName')]",
+            "apiVersion": "2020-03-01",
+            "kind": "GlobalDocumentDB",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "consistencyPolicy": {
+                    "Session": {
+                        "defaultConsistencyLevel": "Session"
+                    }
+                },
+                "locations": [
+                    {
+                        "locationName": "[resourceGroup().location]",
+                        "failoverPriority": 0,
+                        "isZoneRedundant": false
+                    }
+                ],
+                "databaseAccountOfferType": "Standard",
+                "enableAutomaticFailover": false,
+                "enableMultipleWriteLocations": false,
+                "publicNetworkAccess": "Disabled"
+            }
+        },
+        {
             "type": "Microsoft.Compute/virtualMachines",
             "apiVersion": "2019-03-01",
             "name": "[variables('virtualMachineName')]",
@@ -252,12 +280,35 @@
             "properties": ""
         },
         {
+            "type": "Microsoft.Network/privateDnsZones",
+            "apiVersion": "2018-09-01",
+            "name": "[variables('privateCosmosDbDnsZoneName')]",
+            "location": "global",
+            "properties": ""
+        },
+        {
             "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
             "apiVersion": "2018-09-01",
             "name": "[concat(variables('privateDnsZoneName'), '/', variables('privateDnsZoneName'), '-link')]",
             "location": "global",
             "dependsOn": [
                 "[resourceId('Microsoft.Network/privateDnsZones', variables('privateDnsZoneName'))]",
+                "[resourceId('Microsoft.Network/virtualNetworks', variables('vnetName'))]"
+            ],
+            "properties": {
+                "registrationEnabled": false,
+                "virtualNetwork": {
+                    "id": "[resourceId('Microsoft.Network/virtualNetworks', variables('vnetName'))]"
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
+            "apiVersion": "2018-09-01",
+            "name": "[concat(variables('privateCosmosDbDnsZoneName'), '/', variables('privateCosmosDbDnsZoneName'), '-link')]",
+            "location": "global",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/privateDnsZones', variables('privateCosmosDbDnsZoneName'))]",
                 "[resourceId('Microsoft.Network/virtualNetworks', variables('vnetName'))]"
             ],
             "properties": {
@@ -287,6 +338,32 @@
                             "privateLinkServiceId": "[resourceId('Microsoft.Storage/storageAccounts', variables('privateEndpointStorageAccountName'))]",
                             "groupIds": [
                                 "queue"
+                            ]
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "type": "Microsoft.Network/privateEndpoints",
+            "name": "[variables('privateEndpointCosmosDbName')]",
+            "apiVersion": "2019-04-01",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[resourceId('Microsoft.DocumentDB/databaseAccounts', variables('privateCosmosDbAccountName'))]",
+                "[resourceId('Microsoft.Network/virtualNetworks', variables('vnetName'))]"
+            ],
+            "properties": {
+                "subnet": {
+                    "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('vnetName'), variables('privateEndpointSubnetName') )]"
+                },
+                "privateLinkServiceConnections": [
+                    {
+                        "name": "MyConnection",
+                        "properties": {
+                            "privateLinkServiceId": "[resourceId('Microsoft.DocumentDB/databaseAccounts', variables('privateCosmosDbAccountName'))]",
+                            "groupIds": [
+                                "sql"
                             ]
                         }
                     }
@@ -593,6 +670,10 @@
             "type": "string",
             "value": "[reference(concat('Microsoft.Network/privateEndpoints/', variables('privateEndpointName'))).networkInterfaces[0].id]"
         },
+        "privateEndpointCosmosDbNetworkInterface": {
+            "type": "string",
+            "value": "[reference(concat('Microsoft.Network/privateEndpoints/', variables('privateEndpointCosmosDbName'))).networkInterfaces[0].id]"
+        },
         "privateEndpointStorageAccountName": {
             "type": "string",
             "value": "[variables('privateEndpointStorageAccountName')]"
@@ -600,6 +681,10 @@
         "privateDNSRecordName": {
             "type": "string",
             "value": "[concat(variables('privateDnsZoneName'), '/', variables('privateEndpointStorageAccountName'))]"
+        },
+        "privateCosmosDbDNSRecordName": {
+            "type": "string",
+            "value": "[concat(variables('privateCosmosDbDnsZoneName'), '/', variables('privateCosmosDbAccountName'))]"
         }
     }
 }

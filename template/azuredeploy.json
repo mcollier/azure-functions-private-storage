@@ -39,9 +39,16 @@
         "applicationInsightsName": "[concat(variables('uniquePrefix'), '-ai')]",
         "functionsSubnetName": "[concat(variables('uniquePrefix'), '-subnet-functions')]",
         "privateEndpointSubnetName": "[concat(variables('uniquePrefix'), '-subnet-privateendpoint')]",
-        "privateEndpointName": "[concat(variables('uniquePrefix'), '-private-queue')]",
+        "privateEndpointStorageQueueName": "[concat(variables('uniquePrefix'), '-private-queue')]",
         "privateEndpointCosmosDbName": "[concat(variables('uniquePrefix'), '-private-cosmosdb')]",
+        "privateEndpointWebJobsQueueStorageName": "[concat(variables('uniquePrefix'), '-wjsa-private-queue')]",
+        "privateEndpointWebJobsTableStorageName": "[concat(variables('uniquePrefix'), '-wjsa-private-table')]",
+        "privateEndpointWebJobsBlobStorageName": "[concat(variables('uniquePrefix'), '-wjsa-private-blob')]",
+        "privateEndpointWebJobsFileStorageName": "[concat(variables('uniquePrefix'), '-wjsa-private-file')]",
         "privateStorageQueueDnsZoneName": "privatelink.queue.core.windows.net",
+        "privateStorageBlobDnsZoneName": "privatelink.blob.core.windows.net",
+        "privateStorageTableDnsZoneName": "privatelink.table.core.windows.net",
+        "privateStorageFileDnsZoneName": "privatelink.file.core.windows.net",
         "privateCosmosDbDnsZoneName": "privatelink.documents.azure.com",
         "vmDiagnosticStorageAccountName": "[concat(variables('uniquePrefix'), 'vmdiag')]",
         "virtualMachineName": "[concat(variables('resourcePrefix'), '-vm')]",
@@ -82,9 +89,9 @@
                             "privateEndpointNetworkPolicies": "Enabled",
                             "privateLinkServiceNetworkPolicies": "Enabled",
                             "serviceEndpoints": [
-                                {
-                                    "service": "Microsoft.Storage"
-                                }
+                                // {
+                                //     "service": "Microsoft.Storage"
+                                // }
                             ],
                             "delegations": [
                                 {
@@ -121,9 +128,9 @@
                             "delegations": [
                             ],
                             "serviceEndpoints": [
-                                {
-                                    "service": "Microsoft.Storage"
-                                }
+                                // {
+                                //     "service": "Microsoft.Storage"
+                                // }
                             ],
                             "privateLinkServiceNetworkPolicies": "Enabled",
                             "privateEndpointNetworkPolicies": "Disabled"
@@ -233,10 +240,10 @@
                 "networkAcls": {
                     "bypass": "AzureServices",
                     "virtualNetworkRules": [
-                        {
-                            "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('vnetName'), variables('functionsSubnetName'))]",
-                            "action": "Allow"
-                        }
+                        // {
+                        //     "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('vnetName'), variables('functionsSubnetName'))]",
+                        //     "action": "Allow"
+                        // }
                     ],
                     "ipRules": [
                     ],
@@ -431,6 +438,27 @@
         {
             "type": "Microsoft.Network/privateDnsZones",
             "apiVersion": "2018-09-01",
+            "name": "[variables('privateStorageBlobDnsZoneName')]",
+            "location": "global",
+            "properties": ""
+        },
+        {
+            "type": "Microsoft.Network/privateDnsZones",
+            "apiVersion": "2018-09-01",
+            "name": "[variables('privateStorageTableDnsZoneName')]",
+            "location": "global",
+            "properties": ""
+        },
+        {
+            "type": "Microsoft.Network/privateDnsZones",
+            "apiVersion": "2018-09-01",
+            "name": "[variables('privateStorageFileDnsZoneName')]",
+            "location": "global",
+            "properties": ""
+        },
+        {
+            "type": "Microsoft.Network/privateDnsZones",
+            "apiVersion": "2018-09-01",
             "name": "[variables('privateCosmosDbDnsZoneName')]",
             "location": "global",
             "properties": ""
@@ -442,6 +470,54 @@
             "location": "global",
             "dependsOn": [
                 "[resourceId('Microsoft.Network/privateDnsZones', variables('privateStorageQueueDnsZoneName'))]",
+                "[resourceId('Microsoft.Network/virtualNetworks', variables('vnetName'))]"
+            ],
+            "properties": {
+                "registrationEnabled": false,
+                "virtualNetwork": {
+                    "id": "[resourceId('Microsoft.Network/virtualNetworks', variables('vnetName'))]"
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
+            "apiVersion": "2018-09-01",
+            "name": "[concat(variables('privateStorageTableDnsZoneName'), '/', variables('privateStorageTableDnsZoneName'), '-link')]",
+            "location": "global",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/privateDnsZones', variables('privateStorageTableDnsZoneName'))]",
+                "[resourceId('Microsoft.Network/virtualNetworks', variables('vnetName'))]"
+            ],
+            "properties": {
+                "registrationEnabled": false,
+                "virtualNetwork": {
+                    "id": "[resourceId('Microsoft.Network/virtualNetworks', variables('vnetName'))]"
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
+            "apiVersion": "2018-09-01",
+            "name": "[concat(variables('privateStorageBlobDnsZoneName'), '/', variables('privateStorageBlobDnsZoneName'), '-link')]",
+            "location": "global",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/privateDnsZones', variables('privateStorageBlobDnsZoneName'))]",
+                "[resourceId('Microsoft.Network/virtualNetworks', variables('vnetName'))]"
+            ],
+            "properties": {
+                "registrationEnabled": false,
+                "virtualNetwork": {
+                    "id": "[resourceId('Microsoft.Network/virtualNetworks', variables('vnetName'))]"
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
+            "apiVersion": "2018-09-01",
+            "name": "[concat(variables('privateStorageFileDnsZoneName'), '/', variables('privateStorageFileDnsZoneName'), '-link')]",
+            "location": "global",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/privateDnsZones', variables('privateStorageFileDnsZoneName'))]",
                 "[resourceId('Microsoft.Network/virtualNetworks', variables('vnetName'))]"
             ],
             "properties": {
@@ -469,7 +545,7 @@
         },
         {
             "type": "Microsoft.Network/privateEndpoints",
-            "name": "[variables('privateEndpointName')]",
+            "name": "[variables('privateEndpointStorageQueueName')]",
             "apiVersion": "2019-11-01",
             "location": "[resourceGroup().location]",
             "dependsOn": [
@@ -487,6 +563,110 @@
                             "privateLinkServiceId": "[resourceId('Microsoft.Storage/storageAccounts', variables('privateEndpointStorageAccountName'))]",
                             "groupIds": [
                                 "queue"
+                            ]
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "type": "Microsoft.Network/privateEndpoints",
+            "name": "[variables('privateEndpointWebJobsQueueStorageName')]",
+            "apiVersion": "2019-11-01",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Storage/storageAccounts', variables('functionWebJobsStorageAccountName'))]",
+                "[resourceId('Microsoft.Network/virtualNetworks', variables('vnetName'))]"
+            ],
+            "properties": {
+                "subnet": {
+                    "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('vnetName'), variables('privateEndpointSubnetName') )]"
+                },
+                "privateLinkServiceConnections": [
+                    {
+                        "name": "MyStorageQueuePrivateLinkConnection",
+                        "properties": {
+                            "privateLinkServiceId": "[resourceId('Microsoft.Storage/storageAccounts', variables('functionWebJobsStorageAccountName'))]",
+                            "groupIds": [
+                                "queue"
+                            ]
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "type": "Microsoft.Network/privateEndpoints",
+            "name": "[variables('privateEndpointWebJobsTableStorageName')]",
+            "apiVersion": "2019-11-01",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Storage/storageAccounts', variables('functionWebJobsStorageAccountName'))]",
+                "[resourceId('Microsoft.Network/virtualNetworks', variables('vnetName'))]"
+            ],
+            "properties": {
+                "subnet": {
+                    "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('vnetName'), variables('privateEndpointSubnetName') )]"
+                },
+                "privateLinkServiceConnections": [
+                    {
+                        "name": "MyStorageQueuePrivateLinkConnection",
+                        "properties": {
+                            "privateLinkServiceId": "[resourceId('Microsoft.Storage/storageAccounts', variables('functionWebJobsStorageAccountName'))]",
+                            "groupIds": [
+                                "table"
+                            ]
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "type": "Microsoft.Network/privateEndpoints",
+            "name": "[variables('privateEndpointWebJobsBlobStorageName')]",
+            "apiVersion": "2019-11-01",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Storage/storageAccounts', variables('functionWebJobsStorageAccountName'))]",
+                "[resourceId('Microsoft.Network/virtualNetworks', variables('vnetName'))]"
+            ],
+            "properties": {
+                "subnet": {
+                    "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('vnetName'), variables('privateEndpointSubnetName') )]"
+                },
+                "privateLinkServiceConnections": [
+                    {
+                        "name": "MyStorageQueuePrivateLinkConnection",
+                        "properties": {
+                            "privateLinkServiceId": "[resourceId('Microsoft.Storage/storageAccounts', variables('functionWebJobsStorageAccountName'))]",
+                            "groupIds": [
+                                "blob"
+                            ]
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "type": "Microsoft.Network/privateEndpoints",
+            "name": "[variables('privateEndpointWebJobsFileStorageName')]",
+            "apiVersion": "2019-11-01",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Storage/storageAccounts', variables('functionWebJobsStorageAccountName'))]",
+                "[resourceId('Microsoft.Network/virtualNetworks', variables('vnetName'))]"
+            ],
+            "properties": {
+                "subnet": {
+                    "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('vnetName'), variables('privateEndpointSubnetName') )]"
+                },
+                "privateLinkServiceConnections": [
+                    {
+                        "name": "MyStorageQueuePrivateLinkConnection",
+                        "properties": {
+                            "privateLinkServiceId": "[resourceId('Microsoft.Storage/storageAccounts', variables('functionWebJobsStorageAccountName'))]",
+                            "groupIds": [
+                                "file"
                             ]
                         }
                     }
@@ -751,7 +931,23 @@
     "outputs": {
         "privateStorageQueueEndpointNetworkInterface": {
             "type": "string",
-            "value": "[reference(concat('Microsoft.Network/privateEndpoints/', variables('privateEndpointName'))).networkInterfaces[0].id]"
+            "value": "[reference(concat('Microsoft.Network/privateEndpoints/', variables('privateEndpointStorageQueueName'))).networkInterfaces[0].id]"
+        },
+        "privateEndpointWebJobsQueueStorageNameNetworkInterface": {
+            "type": "string",
+            "value": "[reference(concat('Microsoft.Network/privateEndpoints/', variables('privateEndpointWebJobsQueueStorageName'))).networkInterfaces[0].id]"
+        },
+        "privateEndpointWebJobsBlobStorageNameNetworkInterface": {
+            "type": "string",
+            "value": "[reference(concat('Microsoft.Network/privateEndpoints/', variables('privateEndpointWebJobsBlobStorageName'))).networkInterfaces[0].id]"
+        },
+        "privateEndpointWebJobsTableStorageNameNetworkInterface": {
+            "type": "string",
+            "value": "[reference(concat('Microsoft.Network/privateEndpoints/', variables('privateEndpointWebJobsTableStorageName'))).networkInterfaces[0].id]"
+        },
+        "privateEndpointWebJobsFileStorageNameNetworkInterface": {
+            "type": "string",
+            "value": "[reference(concat('Microsoft.Network/privateEndpoints/', variables('privateEndpointWebJobsFileStorageName'))).networkInterfaces[0].id]"
         },
         "privateEndpointCosmosDbNetworkInterface": {
             "type": "string",
@@ -760,6 +956,22 @@
         "privateStorageDNSRecordName": {
             "type": "string",
             "value": "[concat(variables('privateStorageQueueDnsZoneName'), '/', variables('privateEndpointStorageAccountName'))]"
+        },
+        "privateWebJobsStorageQueueDNSRecordName": {
+            "type": "string",
+            "value": "[concat(variables('privateStorageQueueDnsZoneName'), '/', variables('functionWebJobsStorageAccountName'))]"
+        },
+        "privateWebJobsStorageTableDNSRecordName": {
+            "type": "string",
+            "value": "[concat(variables('privateStorageTableDnsZoneName'), '/', variables('functionWebJobsStorageAccountName'))]"
+        },
+        "privateWebJobsStorageBlobDNSRecordName": {
+            "type": "string",
+            "value": "[concat(variables('privateStorageBlobDnsZoneName'), '/', variables('functionWebJobsStorageAccountName'))]"
+        },
+        "privateWebJobsStorageFileDNSRecordName": {
+            "type": "string",
+            "value": "[concat(variables('privateStorageFileDnsZoneName'), '/', variables('functionWebJobsStorageAccountName'))]"
         },
         "privateCosmosDbDnsZoneName": {
             "type": "string",

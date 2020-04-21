@@ -24,7 +24,7 @@ There are four Azure Storage accounts created in this sample:
 
 [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fgithub.com%2Fmcollier%2Fazure-functions-private-storage.git)
 
-Execute the [ARM template in the template directory](./template/azuredeploy.json).  A [script](./deploy.sh) is provided to deploy the template. The ARM template will provision the following resources:
+Execute the [ARM template in the template directory](./template/azuredeploy.json).  A [script](./template/deploy.sh) is provided to deploy the template. The ARM template will provision the following resources:
 
 - Four storage accounts
 - Virtual network with three subnets

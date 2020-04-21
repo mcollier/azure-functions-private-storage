@@ -14,7 +14,7 @@ namespace Company.Function
     {
         [FunctionName("QueueTrigger")]
         public static async Task GetMessagesFunctionsAsync(
-                    [QueueTrigger("%QueueName%", Connection = "PrivateEndpointStorage")] string queueItem,
+                    [QueueTrigger("%QueueName%", Connection = "PrivateAzureStorageConnection")] string queueItem,
                     [CosmosDB(
                         databaseName: "%CosmosDbName%",
                         collectionName: "%CosmosDbCollectionName%",

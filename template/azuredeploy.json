@@ -14,12 +14,18 @@
         "cosmosDbContainerName": {
             "type": "string"
         },
+        "storageQueueName": {
+            "type": "string"
+        },
+        "deploySourceCode": {
+            "type": "bool",
+            "defaultValue": true
+        },
         "function_repo_url": {
             "type": "string"
         }
     },
     "variables": {
-        "deployCode": "No",
         "appInsightsResourceId": "[resourceId('Microsoft.Insights/components', variables('applicationInsightsName'))]",
         "resourcePrefix": "pfunc",
         "uniqueStringId": "[uniqueString(resourceGroup().id)]",
@@ -59,9 +65,9 @@
             "apiVersion": "2019-11-01",
             "location": "[resourceGroup().location]",
             "name": "[variables('vnetName')]",
-            // "dependsOn": [
-            //     "[resourceId('Microsoft.Network/networkSecurityGroups/', variables('vmNsgName'))]"
-            // ],
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/networkSecurityGroups/', variables('vmNsgName'))]"
+            ],
             "properties": {
                 "addressSpace": {
                     "addressPrefixes": [
@@ -674,6 +680,26 @@
                             "value": "168.63.129.16"
                         },
                         {
+                            "name": "PrivateAzureStorageConnection",
+                            "value": "[concat('DefaultEndpointsProtocol=https;AccountName=',variables('privateEndpointStorageAccountName'),';AccountKey=',listkeys(resourceId('Microsoft.Storage/storageAccounts', variables('privateEndpointStorageAccountName')), '2018-11-01').keys[0].value,';')]"
+                        },
+                        {
+                            "name": "QueueName",
+                            "value": "[parameters('storageQueueName')]"
+                        },
+                        {
+                            "name": "CosmosDbName",
+                            "value": "[parameters('cosmosDbDatabaseName')]"
+                        },
+                        {
+                            "name": "CosmosDbCollectionName",
+                            "value": "[parameters('cosmosDbContainerName')]"
+                        },
+                        {
+                            "name": "CosmosDBConnection",
+                            "value": "[listConnectionStrings(resourceId('Microsoft.DocumentDB/databaseAccounts', variables('privateCosmosDbAccountName')), '2019-12-12').connectionStrings[0].connectionString]"
+                        },
+                        {
                             "name": "Project",
                             "value": "src"
                         }
@@ -695,7 +721,7 @@
                     }
                 },
                 {
-                    "condition": "[equals(variables('deployCode'), 'Yes')]",
+                    "condition": "[parameters('deploySourceCode')]",
                     "type": "sourcecontrols",
                     "apiVersion": "2019-08-01",
                     "name": "web",
@@ -723,7 +749,7 @@
         }
     ],
     "outputs": {
-        "privateEndpointNetworkInterface": {
+        "privateStorageQueueEndpointNetworkInterface": {
             "type": "string",
             "value": "[reference(concat('Microsoft.Network/privateEndpoints/', variables('privateEndpointName'))).networkInterfaces[0].id]"
         },
@@ -731,17 +757,13 @@
             "type": "string",
             "value": "[reference(concat('Microsoft.Network/privateEndpoints/', variables('privateEndpointCosmosDbName'))).networkInterfaces[0].id]"
         },
-        "privateEndpointStorageAccountName": {
-            "type": "string",
-            "value": "[variables('privateEndpointStorageAccountName')]"
-        },
-        "privateDNSRecordName": {
+        "privateStorageDNSRecordName": {
             "type": "string",
             "value": "[concat(variables('privateStorageQueueDnsZoneName'), '/', variables('privateEndpointStorageAccountName'))]"
         },
-        "privateCosmosDbDNSRecordName": {
+        "privateCosmosDbDnsZoneName": {
             "type": "string",
-            "value": "[concat(variables('privateCosmosDbDnsZoneName'), '/', variables('privateCosmosDbAccountName'))]"
+            "value": "[variables('privateCosmosDbDnsZoneName')]"
         }
     }
 }

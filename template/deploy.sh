@@ -4,7 +4,7 @@
 #az account set -s 
 
 
-resourceGroupName="function-private-storage-demo-scus-10"
+resourceGroupName="function-private-storage-demo-scus-101"
 location="southcentralus"
 now=`date +%Y%m%d-%H%M%S`
 deploymentName="azuredeploy-$now"
@@ -23,7 +23,7 @@ az deployment group create --template-file azuredeploy.json --parameters azurede
 
 # Get Azure Storage Private Endpoint data
 echo "Getting Azure Storage queue private endpoint . . ."
-storagePrivateNic=$(az deployment group show --name $deploymentName --query properties.outputs.privateEndpointNetworkInterface.value --output tsv)
+storagePrivateNic=$(az deployment group show --name $deploymentName --query properties.outputs.privateStorageQueueEndpointNetworkInterface.value --output tsv)
 echo "Private storage queue NIC is $storagePrivateNic"
 
 
@@ -36,7 +36,7 @@ if [[ ! -z $storagePrivateNic ]]; then
 
     # # Get the DNS record
     echo "Getting private storage DNS record . . ."
-    storagePrivateDnsRecord=$(az deployment group show --name $deploymentName --query properties.outputs.privateDNSRecordName.value --output tsv)
+    storagePrivateDnsRecord=$(az deployment group show --name $deploymentName --query properties.outputs.privateStorageDNSRecordName.value --output tsv)
 
     # Deploy private zone for storage
     echo "Deploying private DNS zone records for storage . . . "
@@ -45,17 +45,18 @@ if [[ ! -z $storagePrivateNic ]]; then
 fi
 
 # Get Azure Cosmos DB Private Endpoint data
+echo "Getting CosmosDB private endpoint . . ."
 cosmosDbPrivateNic=$(az deployment group show --name $deploymentName --query properties.outputs.privateEndpointCosmosDbNetworkInterface.value --output tsv)
 echo "CosmosDB private NIC is" $cosmosDbPrivateNic
 
 if [[ ! -z $cosmosDbPrivateNic ]]; then
 
     # Get the IP address
-    echo "Getting CosmosDB private IP address . . ."
+    echo "Getting first CosmosDB private IP address . . ."
     cosmosDbPrivateIpAddress=$(az resource show --ids $cosmosDbPrivateNic --query properties.ipConfigurations[0].properties.privateIPAddress --output tsv)
     echo $cosmosDbPrivateIpAddress
 
-    echo "Getting CosmosDB private member name . . . "
+    echo "Getting first CosmosDB private member name . . . "
     cosmosDbPrivateMemberName=$(az resource show --ids $cosmosDbPrivateNic --query properties.ipConfigurations[0].properties.privateLinkConnectionProperties.requiredMemberName --output tsv)
 
 
@@ -69,13 +70,11 @@ if [[ ! -z $cosmosDbPrivateNic ]]; then
 
     # Get the DNS record
     echo "Getting CosmosDB private DNS record . . ."
-    cosmosDbPrivateDnsRecord=$(az deployment group show --name $deploymentName --query properties.outputs.privateCosmosDbDNSRecordName.value --output tsv)
-
-## FIX UP THE HARD CODED BELOW
+    cosmosDbPrivateDnsZoneName=$(az deployment group show --name $deploymentName --query properties.outputs.privateCosmosDbDnsZoneName.value --output tsv)
 
     # Deploy private zone for Cosmos DB
     echo "Deploying private DNS zone record for CosmosDB . . ."
-    az deployment group create --template-file PrivateZoneRecords_template.json --parameters DNSRecordName=$cosmosDbPrivateDnsRecord IPAddress=$cosmosDbPrivateIpAddress
+    az deployment group create --template-file PrivateZoneRecords_template.json --parameters DNSRecordName=$cosmosDbPrivateDnsZoneName'/'$cosmosDbPrivateMemberName IPAddress=$cosmosDbPrivateIpAddress
 
-    az deployment group create --template-file PrivateZoneRecords_template.json --parameters DNSRecordName='privatelink.documents.azure.com/'$cosmosDbPrivateMemberName2 IPAddress=$cosmosDbPrivateIpAddress2
+    az deployment group create --template-file PrivateZoneRecords_template.json --parameters DNSRecordName=$cosmosDbPrivateDnsZoneName'/'$cosmosDbPrivateMemberName2 IPAddress=$cosmosDbPrivateIpAddress2
 fi

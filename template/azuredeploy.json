@@ -8,6 +8,12 @@
         "virtualMachineAdminPassword": {
             "type": "securestring"
         },
+        "cosmosDbDatabaseName": {
+            "type": "string"
+        },
+        "cosmosDbContainerName": {
+            "type": "string"
+        },
         "function_repo_url": {
             "type": "string"
         }
@@ -29,8 +35,8 @@
         "privateEndpointSubnetName": "[concat(variables('uniquePrefix'), '-subnet-privateendpoint')]",
         "privateEndpointName": "[concat(variables('uniquePrefix'), '-private-queue')]",
         "privateEndpointCosmosDbName": "[concat(variables('uniquePrefix'), '-private-cosmosdb')]",
-        "privateDnsZoneName": "privatelink.queue.core.windows.net",
-        "privateCosmosDbDnsZoneName": "privatelink.documents.core.windows.net",
+        "privateStorageQueueDnsZoneName": "privatelink.queue.core.windows.net",
+        "privateCosmosDbDnsZoneName": "privatelink.documents.azure.com",
         "vmDiagnosticStorageAccountName": "[concat(variables('uniquePrefix'), 'vmdiag')]",
         "virtualMachineName": "[concat(variables('resourcePrefix'), '-vm')]",
         "vmNicName": "[concat(variables('uniquePrefix'), '-vm-nic')]",
@@ -48,6 +54,92 @@
         "privateEndpointSubnetAddressPrefix": "10.0.1.0/24"
     },
     "resources": [
+        {
+            "type": "Microsoft.Network/virtualNetworks",
+            "apiVersion": "2019-11-01",
+            "location": "[resourceGroup().location]",
+            "name": "[variables('vnetName')]",
+            // "dependsOn": [
+            //     "[resourceId('Microsoft.Network/networkSecurityGroups/', variables('vmNsgName'))]"
+            // ],
+            "properties": {
+                "addressSpace": {
+                    "addressPrefixes": [
+                        "[variables('vnetAddressPrefix')]"
+                    ]
+                },
+                "subnets": [
+                    {
+                        "name": "[variables('functionsSubnetName')]",
+                        "properties": {
+                            "addressPrefix": "[variables('functionSubnetAddressPrefix')]",
+                            "privateEndpointNetworkPolicies": "Enabled",
+                            "privateLinkServiceNetworkPolicies": "Enabled",
+                            "serviceEndpoints": [
+                                {
+                                    "service": "Microsoft.Storage"
+                                }
+                            ],
+                            "delegations": [
+                                {
+                                    "name": "webapp",
+                                    "properties": {
+                                        "serviceName": "Microsoft.Web/serverFarms",
+                                        "actions": [
+                                            "Microsoft.Network/virtualNetworks/subnets/action"
+                                        ]
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "name": "[variables('privateEndpointSubnetName')]",
+                        "properties": {
+                            "addressPrefix": "[variables('privateEndpointSubnetAddressPrefix')]",
+                            "serviceEndpoints": [
+                            ],
+                            "delegations": [
+                            ],
+                            "privateLinkServiceNetworkPolicies": "Enabled",
+                            "privateEndpointNetworkPolicies": "Disabled"
+                        }
+                    },
+                    {
+                        "name": "[variables('vmSubnetName')]",
+                        "properties": {
+                            "addressPrefix": "[variables('vmSubnetAddressPrefix')]",
+                            "networkSecurityGroup": {
+                                "id": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('vmNsgName'))]"
+                            },
+                            "delegations": [
+                            ],
+                            "serviceEndpoints": [
+                                {
+                                    "service": "Microsoft.Storage"
+                                }
+                            ],
+                            "privateLinkServiceNetworkPolicies": "Enabled",
+                            "privateEndpointNetworkPolicies": "Disabled"
+                        }
+                    },
+                    {
+                        "name": "[variables('bastionSubnetName')]",
+                        "properties": {
+                            "addressPrefix": "[variables('bastionSubnetAddressPrefix')]",
+                            "delegations": [
+                            ],
+                            "privateEndpointNetworkPolicies": "Enabled",
+                            "privateLinkServiceNetworkPolicies": "Enabled"
+                        }
+                    }
+                ],
+                "virtualNetworkPeerings": [
+                ],
+                "enableDdosProtection": false,
+                "enableVmProtection": false
+            }
+        },
         {
             "type": "Microsoft.Storage/storageAccounts",
             "apiVersion": "2019-06-01",
@@ -198,6 +290,57 @@
             }
         },
         {
+            "type": "Microsoft.DocumentDB/databaseAccounts/sqlDatabases",
+            "name": "[concat(variables('privateCosmosDbAccountName'), '/', parameters('cosmosDbDatabaseName'))]",
+            "apiVersion": "2019-08-01",
+            "dependsOn": [
+                "[resourceId('Microsoft.DocumentDB/databaseAccounts', variables('privateCosmosDbAccountName'))]"
+            ],
+            "properties": {
+                "resource": {
+                    "id": "[ parameters('cosmosDbDatabaseName')]"
+                },
+                "options": {
+                }
+            }
+        },
+        {
+            "type": "Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers",
+            "name": "[concat(variables('privateCosmosDbAccountName'), '/', parameters('cosmosDbDatabaseName'), '/', parameters('cosmosDbContainerName'))]",
+            "apiVersion": "2019-08-01",
+            "dependsOn": [
+                "[resourceId('Microsoft.DocumentDB/databaseAccounts/sqlDatabases', variables('privateCosmosDbAccountName'), parameters('cosmosDbDatabaseName'))]",
+                "[resourceId('Microsoft.DocumentDB/databaseAccounts', variables('privateCosmosDbAccountName'))]"
+            ],
+            "properties": {
+                "resource": {
+                    "id": "[parameters('cosmosDbContainerName')]",
+                    "partitionKey": {
+                        "paths": [
+                            "/id"
+                        ],
+                        "kind": "Hash"
+                    },
+                    "indexingPolicy": {
+                        "indexingMode": "consistent",
+                        "includedPaths": [
+                            {
+                                "path": "/*"
+                            }
+                        ],
+                        "excludedPaths": [
+                            {
+                                "path": "/\"_etag\"/?"
+                            }
+                        ]
+                    }
+                },
+                "options": {
+                    "throughput": 400
+                }
+            }
+        },
+        {
             "type": "Microsoft.Compute/virtualMachines",
             "apiVersion": "2019-03-01",
             "name": "[variables('virtualMachineName')]",
@@ -275,7 +418,7 @@
         {
             "type": "Microsoft.Network/privateDnsZones",
             "apiVersion": "2018-09-01",
-            "name": "[variables('privateDnsZoneName')]",
+            "name": "[variables('privateStorageQueueDnsZoneName')]",
             "location": "global",
             "properties": ""
         },
@@ -289,10 +432,10 @@
         {
             "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
             "apiVersion": "2018-09-01",
-            "name": "[concat(variables('privateDnsZoneName'), '/', variables('privateDnsZoneName'), '-link')]",
+            "name": "[concat(variables('privateStorageQueueDnsZoneName'), '/', variables('privateStorageQueueDnsZoneName'), '-link')]",
             "location": "global",
             "dependsOn": [
-                "[resourceId('Microsoft.Network/privateDnsZones', variables('privateDnsZoneName'))]",
+                "[resourceId('Microsoft.Network/privateDnsZones', variables('privateStorageQueueDnsZoneName'))]",
                 "[resourceId('Microsoft.Network/virtualNetworks', variables('vnetName'))]"
             ],
             "properties": {
@@ -321,7 +464,7 @@
         {
             "type": "Microsoft.Network/privateEndpoints",
             "name": "[variables('privateEndpointName')]",
-            "apiVersion": "2019-04-01",
+            "apiVersion": "2019-11-01",
             "location": "[resourceGroup().location]",
             "dependsOn": [
                 "[resourceId('Microsoft.Storage/storageAccounts', variables('privateEndpointStorageAccountName'))]",
@@ -333,7 +476,7 @@
                 },
                 "privateLinkServiceConnections": [
                     {
-                        "name": "MyConnection",
+                        "name": "MyStorageQueuePrivateLinkConnection",
                         "properties": {
                             "privateLinkServiceId": "[resourceId('Microsoft.Storage/storageAccounts', variables('privateEndpointStorageAccountName'))]",
                             "groupIds": [
@@ -347,7 +490,7 @@
         {
             "type": "Microsoft.Network/privateEndpoints",
             "name": "[variables('privateEndpointCosmosDbName')]",
-            "apiVersion": "2019-04-01",
+            "apiVersion": "2019-11-01",
             "location": "[resourceGroup().location]",
             "dependsOn": [
                 "[resourceId('Microsoft.DocumentDB/databaseAccounts', variables('privateCosmosDbAccountName'))]",
@@ -359,103 +502,18 @@
                 },
                 "privateLinkServiceConnections": [
                     {
-                        "name": "MyConnection",
+                        "name": "MyCosmosDbPrivateLinkConnection",
                         "properties": {
                             "privateLinkServiceId": "[resourceId('Microsoft.DocumentDB/databaseAccounts', variables('privateCosmosDbAccountName'))]",
                             "groupIds": [
-                                "sql"
+                                "Sql"
                             ]
                         }
                     }
                 ]
             }
         },
-        {
-            "type": "Microsoft.Network/virtualNetworks",
-            "apiVersion": "2019-11-01",
-            "location": "[resourceGroup().location]",
-            "name": "[variables('vnetName')]",
-            "dependsOn": [
-                "[resourceId('Microsoft.Network/networkSecurityGroups/', variables('vmNsgName'))]"
-            ],
-            "properties": {
-                "addressSpace": {
-                    "addressPrefixes": [
-                        "[variables('vnetAddressPrefix')]"
-                    ]
-                },
-                "subnets": [
-                    {
-                        "name": "[variables('functionsSubnetName')]",
-                        "properties": {
-                            "addressPrefix": "[variables('functionSubnetAddressPrefix')]",
-                            "privateEndpointNetworkPolicies": "Enabled",
-                            "privateLinkServiceNetworkPolicies": "Enabled",
-                            "serviceEndpoints": [
-                                {
-                                    "service": "Microsoft.Storage"
-                                }
-                            ],
-                            "delegations": [
-                                {
-                                    "name": "webapp",
-                                    "properties": {
-                                        "serviceName": "Microsoft.Web/serverFarms",
-                                        "actions": [
-                                            "Microsoft.Network/virtualNetworks/subnets/action"
-                                        ]
-                                    }
-                                }
-                            ]
-                        }
-                    },
-                    {
-                        "name": "[variables('privateEndpointSubnetName')]",
-                        "properties": {
-                            "addressPrefix": "[variables('privateEndpointSubnetAddressPrefix')]",
-                            "serviceEndpoints": [
-                            ],
-                            "delegations": [
-                            ],
-                            "privateLinkServiceNetworkPolicies": "Enabled",
-                            "privateEndpointNetworkPolicies": "Disabled"
-                        }
-                    },
-                    {
-                        "name": "[variables('vmSubnetName')]",
-                        "properties": {
-                            "addressPrefix": "[variables('vmSubnetAddressPrefix')]",
-                            "networkSecurityGroup": {
-                                "id": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('vmNsgName'))]"
-                            },
-                            "delegations": [
-                            ],
-                            "serviceEndpoints": [
-                                {
-                                    "service": "Microsoft.Storage"
-                                }
-                            ],
-                            "privateLinkServiceNetworkPolicies": "Enabled",
-                            "privateEndpointNetworkPolicies": "Disabled"
-                        }
-                    },
-                    {
-                        "name": "[variables('bastionSubnetName')]",
-                        "properties": {
-                            "addressPrefix": "[variables('bastionSubnetAddressPrefix')]",
-                            "delegations": [
-                            ],
-                            "privateEndpointNetworkPolicies": "Enabled",
-                            "privateLinkServiceNetworkPolicies": "Enabled"
-                        }
-                    }
-                ],
-                "virtualNetworkPeerings": [
-                ],
-                "enableDdosProtection": false,
-                "enableVmProtection": false
-            }
-        },
+
         {
             "type": "Microsoft.Network/bastionHosts",
             "name": "[variables('bastionHostName')]",
@@ -624,15 +682,16 @@
             },
             "resources": [
                 {
-                    "type": "config",
+                    "type": "networkConfig",
                     "apiVersion": "2019-08-01",
+                    "name": "virtualNetwork",
                     "dependsOn": [
-                        "[resourceId('Microsoft.Web/sites', variables('functionAppName'))]"
+                        "[concat('Microsoft.Web/sites/', variables('functionAppName'))]",
+                        "[resourceId('Microsoft.Network/virtualNetworks', variables('vnetName'))]"
                     ],
-                    "name": "web",
                     "properties": {
-                        // Enables VNET trigger support / runtime driven scale.
-                        "functionsRuntimeScaleMonitoringEnabled": true
+                        "subnetResourceId": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('vnetName'), variables('functionsSubnetName'))]",
+                        "isSwift": true
                     }
                 },
                 {
@@ -652,16 +711,14 @@
             ]
         },
         {
-            "type": "Microsoft.Web/sites/networkConfig",
-            "apiVersion": "2018-02-01",
-            "name": "[concat(variables('functionAppName'), '/VirtualNetwork')]",
+            "type": "Microsoft.Web/sites/config",
+            "apiVersion": "2019-08-01",
+            "name": "[concat(variables('functionAppName'), '/', 'web')]",
             "dependsOn": [
-                "[concat('Microsoft.Web/sites/', variables('functionAppName'))]",
-                "[resourceId('Microsoft.Network/virtualNetworks', variables('vnetName'))]"
+                "[resourceId('Microsoft.Web/sites', variables('functionAppName'))]"
             ],
             "properties": {
-                "subnetResourceId": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('vnetName'), variables('functionsSubnetName'))]",
-                "isSwift": true
+                "functionsRuntimeScaleMonitoringEnabled": true
             }
         }
     ],
@@ -680,7 +737,7 @@
         },
         "privateDNSRecordName": {
             "type": "string",
-            "value": "[concat(variables('privateDnsZoneName'), '/', variables('privateEndpointStorageAccountName'))]"
+            "value": "[concat(variables('privateStorageQueueDnsZoneName'), '/', variables('privateEndpointStorageAccountName'))]"
         },
         "privateCosmosDbDNSRecordName": {
             "type": "string",

@@ -262,3 +262,6 @@ paket-files/
 # Python Tools for Visual Studio (PTVS)
 __pycache__/
 *.pyc
+src/azure-functions-core-tools/*
+template/azure-functions-core-tools/*
+azure-functions-core-tools/*

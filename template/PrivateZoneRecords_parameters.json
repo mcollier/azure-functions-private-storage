@@ -6,7 +6,7 @@
             "value": "privatelink.queue.core.windows.net/RECORD-NAME"
         },
         "IPAddress": {
-            "type": "object"
+            "value": "10.0.1.4"
         }
     }
 }

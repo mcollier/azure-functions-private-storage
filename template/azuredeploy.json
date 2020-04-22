@@ -21,6 +21,10 @@
             "type": "bool",
             "defaultValue": true
         },
+        "location": {
+            "type": "string",
+            "defaultValue": "[resourceGroup().location]"
+        },
         "function_repo_url": {
             "type": "string"
         }
@@ -70,7 +74,7 @@
         {
             "type": "Microsoft.Network/virtualNetworks",
             "apiVersion": "2019-11-01",
-            "location": "[resourceGroup().location]",
+            "location": "[parameters('location')]",
             "name": "[variables('vnetName')]",
             "dependsOn": [
                 "[resourceId('Microsoft.Network/networkSecurityGroups/', variables('vmNsgName'))]"
@@ -89,9 +93,6 @@
                             "privateEndpointNetworkPolicies": "Enabled",
                             "privateLinkServiceNetworkPolicies": "Enabled",
                             "serviceEndpoints": [
-                                // {
-                                //     "service": "Microsoft.Storage"
-                                // }
                             ],
                             "delegations": [
                                 {
@@ -128,9 +129,6 @@
                             "delegations": [
                             ],
                             "serviceEndpoints": [
-                                // {
-                                //     "service": "Microsoft.Storage"
-                                // }
                             ],
                             "privateLinkServiceNetworkPolicies": "Enabled",
                             "privateEndpointNetworkPolicies": "Disabled"
@@ -156,7 +154,7 @@
         {
             "type": "Microsoft.Storage/storageAccounts",
             "apiVersion": "2019-06-01",
-            "location": "[resourceGroup().location]",
+            "location": "[parameters('location')]",
             "name": "[variables('functionAppContentStorageAccountName')]",
             "sku": {
                 "name": "Standard_LRS",
@@ -191,7 +189,7 @@
         {
             "type": "Microsoft.Storage/storageAccounts",
             "apiVersion": "2019-06-01",
-            "location": "[resourceGroup().location]",
+            "location": "[parameters('location')]",
             "name": "[variables('privateEndpointStorageAccountName')]",
             "sku": {
                 "name": "Standard_LRS",
@@ -226,7 +224,7 @@
         {
             "type": "Microsoft.Storage/storageAccounts",
             "apiVersion": "2019-06-01",
-            "location": "[resourceGroup().location]",
+            "location": "[parameters('location')]",
             "dependsOn": [
                 "[resourceId('Microsoft.Network/virtualNetworks', variables('vnetName'))]"
             ],
@@ -240,10 +238,6 @@
                 "networkAcls": {
                     "bypass": "AzureServices",
                     "virtualNetworkRules": [
-                        // {
-                        //     "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('vnetName'), variables('functionsSubnetName'))]",
-                        //     "action": "Allow"
-                        // }
                     ],
                     "ipRules": [
                     ],
@@ -269,7 +263,7 @@
             "type": "Microsoft.Storage/storageAccounts",
             "apiVersion": "2019-04-01",
             "name": "[variables('vmDiagnosticStorageAccountName')]",
-            "location": "[resourceGroup().location]",
+            "location": "[parameters('location')]",
             "sku": {
                 "name": "Standard_LRS"
             },
@@ -282,7 +276,7 @@
             "name": "[variables('privateCosmosDbAccountName')]",
             "apiVersion": "2020-03-01",
             "kind": "GlobalDocumentDB",
-            "location": "[resourceGroup().location]",
+            "location": "[parameters('location')]",
             "properties": {
                 "consistencyPolicy": {
                     "Session": {
@@ -291,7 +285,7 @@
                 },
                 "locations": [
                     {
-                        "locationName": "[resourceGroup().location]",
+                        "locationName": "[parameters('location')]",
                         "failoverPriority": 0,
                         "isZoneRedundant": false
                     }
@@ -357,7 +351,7 @@
             "type": "Microsoft.Compute/virtualMachines",
             "apiVersion": "2019-03-01",
             "name": "[variables('virtualMachineName')]",
-            "location": "[resourceGroup().location]",
+            "location": "[parameters('location')]",
             "dependsOn": [
                 "[resourceId('Microsoft.Storage/storageAccounts/', variables('vmDiagnosticStorageAccountName'))]",
                 "[resourceId('Microsoft.Network/networkInterfaces/', variables('vmNicName'))]"
@@ -401,7 +395,7 @@
             "type": "Microsoft.DevTestLab/schedules",
             "name": "[concat('shutdown-computevm-', variables('virtualMachineName'))]",
             "apiVersion": "2018-09-15",
-            "location": "[resourceGroup().location]",
+            "location": "[parameters('location')]",
             "dependsOn": [
                 "[concat('Microsoft.Compute/virtualMachines/', variables('virtualMachineName'))]"
             ],
@@ -421,7 +415,7 @@
         {
             "type": "Microsoft.Insights/components",
             "apiVersion": "2015-05-01",
-            "location": "[resourceGroup().location]",
+            "location": "[parameters('location')]",
             "name": "[variables('applicationInsightsName')]",
             "kind": "web",
             "properties": {
@@ -547,7 +541,7 @@
             "type": "Microsoft.Network/privateEndpoints",
             "name": "[variables('privateEndpointStorageQueueName')]",
             "apiVersion": "2019-11-01",
-            "location": "[resourceGroup().location]",
+            "location": "[parameters('location')]",
             "dependsOn": [
                 "[resourceId('Microsoft.Storage/storageAccounts', variables('privateEndpointStorageAccountName'))]",
                 "[resourceId('Microsoft.Network/virtualNetworks', variables('vnetName'))]"
@@ -573,7 +567,7 @@
             "type": "Microsoft.Network/privateEndpoints",
             "name": "[variables('privateEndpointWebJobsQueueStorageName')]",
             "apiVersion": "2019-11-01",
-            "location": "[resourceGroup().location]",
+            "location": "[parameters('location')]",
             "dependsOn": [
                 "[resourceId('Microsoft.Storage/storageAccounts', variables('functionWebJobsStorageAccountName'))]",
                 "[resourceId('Microsoft.Network/virtualNetworks', variables('vnetName'))]"
@@ -599,7 +593,7 @@
             "type": "Microsoft.Network/privateEndpoints",
             "name": "[variables('privateEndpointWebJobsTableStorageName')]",
             "apiVersion": "2019-11-01",
-            "location": "[resourceGroup().location]",
+            "location": "[parameters('location')]",
             "dependsOn": [
                 "[resourceId('Microsoft.Storage/storageAccounts', variables('functionWebJobsStorageAccountName'))]",
                 "[resourceId('Microsoft.Network/virtualNetworks', variables('vnetName'))]"
@@ -625,7 +619,7 @@
             "type": "Microsoft.Network/privateEndpoints",
             "name": "[variables('privateEndpointWebJobsBlobStorageName')]",
             "apiVersion": "2019-11-01",
-            "location": "[resourceGroup().location]",
+            "location": "[parameters('location')]",
             "dependsOn": [
                 "[resourceId('Microsoft.Storage/storageAccounts', variables('functionWebJobsStorageAccountName'))]",
                 "[resourceId('Microsoft.Network/virtualNetworks', variables('vnetName'))]"
@@ -651,7 +645,7 @@
             "type": "Microsoft.Network/privateEndpoints",
             "name": "[variables('privateEndpointWebJobsFileStorageName')]",
             "apiVersion": "2019-11-01",
-            "location": "[resourceGroup().location]",
+            "location": "[parameters('location')]",
             "dependsOn": [
                 "[resourceId('Microsoft.Storage/storageAccounts', variables('functionWebJobsStorageAccountName'))]",
                 "[resourceId('Microsoft.Network/virtualNetworks', variables('vnetName'))]"
@@ -677,7 +671,7 @@
             "type": "Microsoft.Network/privateEndpoints",
             "name": "[variables('privateEndpointCosmosDbName')]",
             "apiVersion": "2019-11-01",
-            "location": "[resourceGroup().location]",
+            "location": "[parameters('location')]",
             "dependsOn": [
                 "[resourceId('Microsoft.DocumentDB/databaseAccounts', variables('privateCosmosDbAccountName'))]",
                 "[resourceId('Microsoft.Network/virtualNetworks', variables('vnetName'))]"
@@ -704,7 +698,7 @@
             "type": "Microsoft.Network/bastionHosts",
             "name": "[variables('bastionHostName')]",
             "apiVersion": "2019-11-01",
-            "location": "[resourceGroup().location]",
+            "location": "[parameters('location')]",
             "dependsOn": [
                 "[resourceId('Microsoft.Network/publicIpAddresses', variables('bastionPublicIPAddressName'))]",
                 "[resourceId('Microsoft.Network/virtualNetworks', variables('vnetName'))]"
@@ -729,7 +723,7 @@
             "type": "Microsoft.Network/networkInterfaces",
             "apiVersion": "2018-11-01",
             "name": "[variables('vmNicName')]",
-            "location": "[resourceGroup().location]",
+            "location": "[parameters('location')]",
             "dependsOn": [
                 "[resourceId('Microsoft.Network/virtualNetworks/', variables('vnetName'))]"
             ],
@@ -751,7 +745,7 @@
             "type": "Microsoft.Network/publicIPAddresses",
             "apiVersion": "2018-11-01",
             "name": "[variables('bastionPublicIPAddressName')]",
-            "location": "[resourceGroup().location]",
+            "location": "[parameters('location')]",
             "sku": {
                 "name": "Standard"
             },
@@ -766,7 +760,7 @@
             "apiVersion": "2019-04-01",
             "type": "Microsoft.Network/networkSecurityGroups",
             "name": "[variables('vmNsgName')]",
-            "location": "[resourceGroup().location]",
+            "location": "[parameters('location')]",
             "properties": {
                 "securityRules": [
                     {
@@ -790,7 +784,7 @@
             "type": "Microsoft.Web/serverfarms",
             "apiVersion": "2018-02-01",
             "name": "[variables('appServicePlanName')]",
-            "location": "[resourceGroup().location]",
+            "location": "[parameters('location')]",
             "sku": {
                 "name": "EP1",
                 "tier": "ElasticPremium",
@@ -807,7 +801,7 @@
             "type": "Microsoft.Web/sites",
             "apiVersion": "2018-11-01",
             "name": "[variables('functionAppName')]",
-            "location": "[resourceGroup().location]",
+            "location": "[parameters('location')]",
             "dependsOn": [
                 "[resourceId('Microsoft.Web/serverfarms', variables('appServicePlanName'))]",
                 "[resourceId('Microsoft.Storage/storageAccounts', variables('functionWebJobsStorageAccountName'))]",

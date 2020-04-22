@@ -34,3 +34,5 @@ Execute the [ARM template in the template directory](./template/azuredeploy.json
 - Cosmos DB (with a database and collection). A private endpoint is configured for use with Cosmos DB.
 - Azure Functions Premium plan and function app with vnet integration enabled
 - Azure Private DNS zones
+
+Credit to Pasi Huuhka [@DrBushyTop](https://twitter.com/DrBushyTop) and the post at https://www.huuhka.net/automating-azure-private-link-storage-private-endpoints/ for the information on using ARM templates to get the IP addresses for the private DNS A records.

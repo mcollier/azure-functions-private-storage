@@ -4,10 +4,15 @@
 #az account set -s 
 
 
-resourceGroupName="function-private-storage-401"
+resourceGroupName="function-private-storage-601"
 location="southcentralus"
 now=`date +%Y%m%d-%H%M%S`
 deploymentName="azuredeploy-$now"
+dnsEntriesHandlerTemplateUri="https://raw.githubusercontent.com/mcollier/azure-functions-private-storage/arm-templates-for-dns-zones/template/PrivateLinkDnsEntriesHandler.json"
+dnsEntriesTemplateUri="https://raw.githubusercontent.com/mcollier/azure-functions-private-storage/arm-templates-for-dns-zones/template/PrivateLinkDnsEntries.json"
+
+# https://raw.githubusercontent.com/DrBushyTop/ARMTemplates/master/PrivateLink/privatelink_dnsentries_handler.json
+#"https://raw.githubusercontent.com/DrBushyTop/ARMTemplates/master/PrivateLink/privatelink_dnsentries.json"
 
 echo "Creating resource group '$resourceGroupName' in region '$location' . . ."
 az group create --name $resourceGroupName --location southcentralus
@@ -32,9 +37,11 @@ if [[ ! -z $storagePrivateNic ]]; then
 
     if [[ ! -z $storageQueuePrivateDnsZoneName ]]; then
 
-        az deployment group create --template-file PrivateLinkIPConfigParser.json --parameters nicId=$storagePrivateNic privateDnsZoneName=$storageQueuePrivateDnsZoneName dnsEntriesHandlerTemplateUri='https://raw.githubusercontent.com/DrBushyTop/ARMTemplates/master/PrivateLink/privatelink_dnsentries_handler.json' dnsEntriesTemplateUri='https://raw.githubusercontent.com/DrBushyTop/ARMTemplates/master/PrivateLink/privatelink_dnsentries.json' --name "PrivateLinkIpConfig-Storage-Queue-$now"
+        az deployment group create --template-file PrivateLinkIPConfigParser.json --parameters deploymentNameSuffix=$now nicId=$storagePrivateNic privateDnsZoneName=$storageQueuePrivateDnsZoneName dnsEntriesHandlerTemplateUri=$dnsEntriesHandlerTemplateUri dnsEntriesTemplateUri=$dnsEntriesTemplateUri --name "PrivateLinkIpConfig-Storage-Queue-$now"
     fi
 fi
+
+# ----- Begin web jobs storage config -----
 
 echo "Getting Azure web jobs storage queue private endpoint . . ."
 webJobsStorageQueuePrivateNic=$(az deployment group show --name $deploymentName --query properties.outputs.privateEndpointWebJobsQueueStorageNameNetworkInterface.value --output tsv)
@@ -44,7 +51,7 @@ if [[ ! -z $webJobsStorageQueuePrivateNic ]]; then
 
     if [[ ! -z $storageQueuePrivateDnsZoneName ]]; then
 
-        az deployment group create --template-file PrivateLinkIPConfigParser.json --parameters nicId=$webJobsStorageQueuePrivateNic privateDnsZoneName=$storageQueuePrivateDnsZoneName dnsEntriesHandlerTemplateUri='https://raw.githubusercontent.com/DrBushyTop/ARMTemplates/master/PrivateLink/privatelink_dnsentries_handler.json' dnsEntriesTemplateUri='https://raw.githubusercontent.com/DrBushyTop/ARMTemplates/master/PrivateLink/privatelink_dnsentries.json' --name "PrivateLinkIpConfig-WebJobsStorage-Queue-$now"
+        az deployment group create --template-file PrivateLinkIPConfigParser.json --parameters deploymentNameSuffix=$now nicId=$webJobsStorageQueuePrivateNic privateDnsZoneName=$storageQueuePrivateDnsZoneName dnsEntriesHandlerTemplateUri=$dnsEntriesHandlerTemplateUri dnsEntriesTemplateUri=$dnsEntriesTemplateUri --name "PrivateLinkIpConfig-WebJobsStorage-Queue-$now"
     fi
 fi
 
@@ -57,7 +64,7 @@ if [[ ! -z $webJobsStorageTablePrivateNic ]]; then
 
     if [[ ! -z $storageTablePrivateDnsZoneName ]]; then
 
-        az deployment group create --template-file PrivateLinkIPConfigParser.json --parameters nicId=$webJobsStorageTablePrivateNic privateDnsZoneName=$storageTablePrivateDnsZoneName dnsEntriesHandlerTemplateUri='https://raw.githubusercontent.com/DrBushyTop/ARMTemplates/master/PrivateLink/privatelink_dnsentries_handler.json' dnsEntriesTemplateUri='https://raw.githubusercontent.com/DrBushyTop/ARMTemplates/master/PrivateLink/privatelink_dnsentries.json' --name "PrivateLinkIpConfig-WebJobsStorage-Table-$now"
+        az deployment group create --template-file PrivateLinkIPConfigParser.json --parameters deploymentNameSuffix=$now nicId=$webJobsStorageTablePrivateNic privateDnsZoneName=$storageTablePrivateDnsZoneName dnsEntriesHandlerTemplateUri=$dnsEntriesHandlerTemplateUri dnsEntriesTemplateUri=$dnsEntriesTemplateUri --name "PrivateLinkIpConfig-WebJobsStorage-Table-$now"
     fi
 fi
 
@@ -70,7 +77,7 @@ if [[ ! -z $webJobsStorageBlobPrivateNic ]]; then
 
     if [[ ! -z $storageBlobPrivateDnsZoneName ]]; then
 
-        az deployment group create --template-file PrivateLinkIPConfigParser.json --parameters nicId=$webJobsStorageBlobPrivateNic privateDnsZoneName=$storageBlobPrivateDnsZoneName dnsEntriesHandlerTemplateUri='https://raw.githubusercontent.com/DrBushyTop/ARMTemplates/master/PrivateLink/privatelink_dnsentries_handler.json' dnsEntriesTemplateUri='https://raw.githubusercontent.com/DrBushyTop/ARMTemplates/master/PrivateLink/privatelink_dnsentries.json' --name "PrivateLinkIpConfig-WebJobsStorage-Blob-$now"
+        az deployment group create --template-file PrivateLinkIPConfigParser.json --parameters deploymentNameSuffix=$now nicId=$webJobsStorageBlobPrivateNic privateDnsZoneName=$storageBlobPrivateDnsZoneName dnsEntriesHandlerTemplateUri=$dnsEntriesHandlerTemplateUri dnsEntriesTemplateUri=$dnsEntriesTemplateUri --name "PrivateLinkIpConfig-WebJobsStorage-Blob-$now"
     fi
 fi
 
@@ -83,11 +90,9 @@ if [[ ! -z $webJobsStorageFilePrivateNic ]]; then
 
     if [[ ! -z $storageFilePrivateDnsZoneName ]]; then
 
-        az deployment group create --template-file PrivateLinkIPConfigParser.json --parameters nicId=$webJobsStorageFilePrivateNic privateDnsZoneName=$storageFilePrivateDnsZoneName dnsEntriesHandlerTemplateUri='https://raw.githubusercontent.com/DrBushyTop/ARMTemplates/master/PrivateLink/privatelink_dnsentries_handler.json' dnsEntriesTemplateUri='https://raw.githubusercontent.com/DrBushyTop/ARMTemplates/master/PrivateLink/privatelink_dnsentries.json' --name "PrivateLinkIpConfig-WebJobsStorage-File-$now"
+        az deployment group create --template-file PrivateLinkIPConfigParser.json --parameters deploymentNameSuffix=$now nicId=$webJobsStorageFilePrivateNic privateDnsZoneName=$storageFilePrivateDnsZoneName dnsEntriesHandlerTemplateUri=$dnsEntriesHandlerTemplateUri dnsEntriesTemplateUri=$dnsEntriesTemplateUri --name "PrivateLinkIpConfig-WebJobsStorage-File-$now"
     fi
 fi
-
-# ----- Begin web jobs storage config -----
 
 # --- End web jobs storage config
 
@@ -104,7 +109,7 @@ if [[ ! -z $cosmosDbPrivateNic ]]; then
 
     if [[ ! -z $cosmosDbPrivateDnsZoneName ]]; then
 
-        az deployment group create --template-file PrivateLinkIPConfigParser.json --parameters nicId=$cosmosDbPrivateNic privateDnsZoneName=$cosmosDbPrivateDnsZoneName dnsEntriesHandlerTemplateUri='https://raw.githubusercontent.com/DrBushyTop/ARMTemplates/master/PrivateLink/privatelink_dnsentries_handler.json' dnsEntriesTemplateUri='https://raw.githubusercontent.com/DrBushyTop/ARMTemplates/master/PrivateLink/privatelink_dnsentries.json' --name "PrivateLinkIpConfig-CosmosDb-$now"
+        az deployment group create --template-file PrivateLinkIPConfigParser.json --parameters  deploymentNameSuffix=$now nicId=$cosmosDbPrivateNic privateDnsZoneName=$cosmosDbPrivateDnsZoneName dnsEntriesHandlerTemplateUri=$dnsEntriesHandlerTemplateUri dnsEntriesTemplateUri=$dnsEntriesTemplateUri --name "PrivateLinkIpConfig-CosmosDb-$now"
     fi
 
 fi

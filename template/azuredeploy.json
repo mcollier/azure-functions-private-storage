@@ -947,26 +947,6 @@
             "type": "string",
             "value": "[reference(concat('Microsoft.Network/privateEndpoints/', variables('privateEndpointCosmosDbName')), '2019-11-01').networkInterfaces[0].id]"
         },
-        // "privateStorageDNSRecordName": {
-        //     "type": "string",
-        //     "value": "[concat(variables('privateStorageQueueDnsZoneName'), '/', variables('privateEndpointStorageAccountName'))]"
-        // },
-        // "privateWebJobsStorageQueueDNSRecordName": {
-        //     "type": "string",
-        //     "value": "[concat(variables('privateStorageQueueDnsZoneName'), '/', variables('functionWebJobsStorageAccountName'))]"
-        // },
-        // "privateWebJobsStorageTableDNSRecordName": {
-        //     "type": "string",
-        //     "value": "[concat(variables('privateStorageTableDnsZoneName'), '/', variables('functionWebJobsStorageAccountName'))]"
-        // },
-        // "privateWebJobsStorageBlobDNSRecordName": {
-        //     "type": "string",
-        //     "value": "[concat(variables('privateStorageBlobDnsZoneName'), '/', variables('functionWebJobsStorageAccountName'))]"
-        // },
-        // "privateWebJobsStorageFileDNSRecordName": {
-        //     "type": "string",
-        //     "value": "[concat(variables('privateStorageFileDnsZoneName'), '/', variables('functionWebJobsStorageAccountName'))]"
-        // },
         "privateCosmosDbDnsZoneName": {
             "type": "string",
             "value": "[variables('privateCosmosDbDnsZoneName')]"

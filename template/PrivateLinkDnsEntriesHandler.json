@@ -2,17 +2,20 @@
     "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
     "contentVersion": "1.0.0.0",
     "parameters": {
-        "nicId": {
-            "type": "string"
-        },
         "privateDnsZoneName": {
             "type": "string"
         },
-        "dnsEntriesHandlerTemplateUri": {
-            "type": "string"
+        "Ipconfigs": {
+            "type": "array",
+            "metadata": {
+                "description": "resource id to ipConfigurations array of private endpoint nic"
+            }
         },
         "dnsEntriesTemplateUri": {
-            "type": "string"
+            "type": "string",
+            "metadata": {
+                "description": "Uri for template that creates private dns entries"
+            }
         },
         "deploymentNameSuffix": {
             "type": "string"
@@ -24,27 +27,30 @@
         {
             "type": "Microsoft.Resources/deployments",
             "apiVersion": "2019-10-01",
-            "name": "[concat('PrivateDns_Entries_Handler', parameters('deploymentNameSuffix'))]",
+            "name": "[concat('PrivateDnsFQDN', copyIndex(1), '-', parameters('deploymentNameSuffix'))]",
             "properties": {
                 "mode": "Incremental",
                 "parameters": {
                     "privateDnsZoneName": {
                         "value": "[parameters('privateDnsZoneName')]"
                     },
-                    "Ipconfigs": {
-                        "value": "[reference(parameters('nicId'), '2019-11-01').ipConfigurations]"
-                    },
-                    "dnsEntriesTemplateUri": {
-                        "value": "[parameters('dnsEntriesTemplateUri')]"
-                    },
-                    "deploymentNameSuffix": {
-                        "value": "[parameters('deploymentNameSuffix')]"
+                    "storageNicIpConf": {
+                        "value": "[parameters('Ipconfigs')[copyIndex()]]"
                     }
                 },
                 "templateLink": {
-                    "uri": "[parameters('dnsEntriesHandlerTemplateUri')]"
+                    "uri": "[parameters('dnsEntriesTemplateUri')]"
                 }
+            },
+            "copy": {
+                "name": "ipconfigCopy",
+                "count": "[length(parameters('Ipconfigs'))]",
+                "mode": "parallel"
             }
         }
+    ],
+    "outputs": {
+    },
+    "functions": [
     ]
 }

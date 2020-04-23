@@ -24,7 +24,7 @@
         {
             "type": "Microsoft.Resources/deployments",
             "apiVersion": "2019-10-01",
-            "name": "[concat('PrivateDns_Entries_Handler', parameters('deploymentNameSuffix'))]",
+            "name": "[concat('PrivateDns_Entries_Handler', '-', parameters('deploymentNameSuffix'))]",
             "properties": {
                 "mode": "Incremental",
                 "parameters": {

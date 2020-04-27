@@ -27,7 +27,7 @@
         {
             "type": "Microsoft.Resources/deployments",
             "apiVersion": "2019-10-01",
-            "name": "[concat('PrivateDnsFQDN', copyIndex(1), '-', uniqueString(resourceGroup().id, newGuid()), '-', parameters('deploymentNameSuffix'))]",
+            "name": "[concat('PrivateDnsFQDN', copyIndex(1), '-', uniqueString(resourceGroup().id, deployment().name), '-', parameters('deploymentNameSuffix'))]",
             "properties": {
                 "mode": "Incremental",
                 "parameters": {

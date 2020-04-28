@@ -8,11 +8,9 @@ resourceGroupName="function-private-storage-601"
 location="southcentralus"
 now=`date +%Y%m%d-%H%M%S`
 deploymentName="azuredeploy-$now"
-dnsEntriesHandlerTemplateUri="https://raw.githubusercontent.com/mcollier/azure-functions-private-storage/arm-templates-for-dns-zones/template/PrivateLinkDnsEntriesHandler.json"
-dnsEntriesTemplateUri="https://raw.githubusercontent.com/mcollier/azure-functions-private-storage/arm-templates-for-dns-zones/template/PrivateLinkDnsEntries.json"
+dnsEntriesHandlerTemplateUri="https://raw.githubusercontent.com/mcollier/azure-functions-private-storage/master/template/PrivateLinkDnsEntriesHandler.json"
+dnsEntriesTemplateUri="https://raw.githubusercontent.com/mcollier/azure-functions-private-storage/master/template/PrivateLinkDnsEntries.json"
 
-# https://raw.githubusercontent.com/DrBushyTop/ARMTemplates/master/PrivateLink/privatelink_dnsentries_handler.json
-#"https://raw.githubusercontent.com/DrBushyTop/ARMTemplates/master/PrivateLink/privatelink_dnsentries.json"
 
 echo "Creating resource group '$resourceGroupName' in region '$location' . . ."
 az group create --name $resourceGroupName --location southcentralus
@@ -86,7 +84,7 @@ webJobsStorageFilePrivateNic=$(az deployment group show --name $deploymentName -
 echo "Private web jobs storage file NIC is $webJobsStorageFilePrivateNic"
 
 if [[ ! -z $webJobsStorageFilePrivateNic ]]; then
-    storageFilePrivateDnsZoneName=$(az deployment group show --name $deploymentName --query properties.outputs.storageBlobPrivateDnsZoneName.value --output tsv)
+    storageFilePrivateDnsZoneName=$(az deployment group show --name $deploymentName --query properties.outputs.storageFilePrivateDnsZoneName.value --output tsv)
 
     if [[ ! -z $storageFilePrivateDnsZoneName ]]; then
 

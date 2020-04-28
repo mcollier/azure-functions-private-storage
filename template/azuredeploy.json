@@ -915,7 +915,8 @@
             "apiVersion": "2019-08-01",
             "name": "[concat(variables('functionAppName'), '/', 'web')]",
             "dependsOn": [
-                "[resourceId('Microsoft.Web/sites', variables('functionAppName'))]"
+                "[resourceId('Microsoft.Web/sites', variables('functionAppName'))]",
+                "[resourceId('Microsoft.Network/virtualNetworks', variables('vnetName'))]"
             ],
             "properties": {
                 "functionsRuntimeScaleMonitoringEnabled": true
@@ -925,51 +926,47 @@
     "outputs": {
         "privateStorageQueueEndpointNetworkInterface": {
             "type": "string",
-            "value": "[reference(concat('Microsoft.Network/privateEndpoints/', variables('privateEndpointStorageQueueName'))).networkInterfaces[0].id]"
+            "value": "[reference(concat('Microsoft.Network/privateEndpoints/', variables('privateEndpointStorageQueueName')), '2019-11-01').networkInterfaces[0].id]"
         },
         "privateEndpointWebJobsQueueStorageNameNetworkInterface": {
             "type": "string",
-            "value": "[reference(concat('Microsoft.Network/privateEndpoints/', variables('privateEndpointWebJobsQueueStorageName'))).networkInterfaces[0].id]"
+            "value": "[reference(concat('Microsoft.Network/privateEndpoints/', variables('privateEndpointWebJobsQueueStorageName')), '2019-11-01').networkInterfaces[0].id]"
         },
         "privateEndpointWebJobsBlobStorageNameNetworkInterface": {
             "type": "string",
-            "value": "[reference(concat('Microsoft.Network/privateEndpoints/', variables('privateEndpointWebJobsBlobStorageName'))).networkInterfaces[0].id]"
+            "value": "[reference(concat('Microsoft.Network/privateEndpoints/', variables('privateEndpointWebJobsBlobStorageName')), '2019-11-01').networkInterfaces[0].id]"
         },
         "privateEndpointWebJobsTableStorageNameNetworkInterface": {
             "type": "string",
-            "value": "[reference(concat('Microsoft.Network/privateEndpoints/', variables('privateEndpointWebJobsTableStorageName'))).networkInterfaces[0].id]"
+            "value": "[reference(concat('Microsoft.Network/privateEndpoints/', variables('privateEndpointWebJobsTableStorageName')), '2019-11-01').networkInterfaces[0].id]"
         },
         "privateEndpointWebJobsFileStorageNameNetworkInterface": {
             "type": "string",
-            "value": "[reference(concat('Microsoft.Network/privateEndpoints/', variables('privateEndpointWebJobsFileStorageName'))).networkInterfaces[0].id]"
+            "value": "[reference(concat('Microsoft.Network/privateEndpoints/', variables('privateEndpointWebJobsFileStorageName')), '2019-11-01').networkInterfaces[0].id]"
         },
         "privateEndpointCosmosDbNetworkInterface": {
             "type": "string",
-            "value": "[reference(concat('Microsoft.Network/privateEndpoints/', variables('privateEndpointCosmosDbName'))).networkInterfaces[0].id]"
-        },
-        "privateStorageDNSRecordName": {
-            "type": "string",
-            "value": "[concat(variables('privateStorageQueueDnsZoneName'), '/', variables('privateEndpointStorageAccountName'))]"
-        },
-        "privateWebJobsStorageQueueDNSRecordName": {
-            "type": "string",
-            "value": "[concat(variables('privateStorageQueueDnsZoneName'), '/', variables('functionWebJobsStorageAccountName'))]"
-        },
-        "privateWebJobsStorageTableDNSRecordName": {
-            "type": "string",
-            "value": "[concat(variables('privateStorageTableDnsZoneName'), '/', variables('functionWebJobsStorageAccountName'))]"
-        },
-        "privateWebJobsStorageBlobDNSRecordName": {
-            "type": "string",
-            "value": "[concat(variables('privateStorageBlobDnsZoneName'), '/', variables('functionWebJobsStorageAccountName'))]"
-        },
-        "privateWebJobsStorageFileDNSRecordName": {
-            "type": "string",
-            "value": "[concat(variables('privateStorageFileDnsZoneName'), '/', variables('functionWebJobsStorageAccountName'))]"
+            "value": "[reference(concat('Microsoft.Network/privateEndpoints/', variables('privateEndpointCosmosDbName')), '2019-11-01').networkInterfaces[0].id]"
         },
         "privateCosmosDbDnsZoneName": {
             "type": "string",
             "value": "[variables('privateCosmosDbDnsZoneName')]"
+        },
+        "storageQueuePrivateDnsZoneName": {
+            "type": "string",
+            "value": "[variables('privateStorageQueueDnsZoneName')]"
+        },
+        "storageTablePrivateDnsZoneName": {
+            "type": "string",
+            "value": "[variables('privateStorageTableDnsZoneName')]"
+        },
+        "storageBlobPrivateDnsZoneName": {
+            "type": "string",
+            "value": "[variables('privateStorageBlobDnsZoneName')]"
+        },
+        "storageFilePrivateDnsZoneName": {
+            "type": "string",
+            "value": "[variables('privateStorageFileDnsZoneName')]"
         }
     }
 }

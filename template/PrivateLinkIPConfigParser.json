@@ -1,0 +1,50 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "nicId": {
+            "type": "string"
+        },
+        "privateDnsZoneName": {
+            "type": "string"
+        },
+        "dnsEntriesHandlerTemplateUri": {
+            "type": "string"
+        },
+        "dnsEntriesTemplateUri": {
+            "type": "string"
+        },
+        "deploymentNameSuffix": {
+            "type": "string"
+        }
+    },
+    "variables": {
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2019-10-01",
+            "name": "[concat('PrivateDns_Entries_Handler', '-', parameters('deploymentNameSuffix'))]",
+            "properties": {
+                "mode": "Incremental",
+                "parameters": {
+                    "privateDnsZoneName": {
+                        "value": "[parameters('privateDnsZoneName')]"
+                    },
+                    "Ipconfigs": {
+                        "value": "[reference(parameters('nicId'), '2019-11-01').ipConfigurations]"
+                    },
+                    "dnsEntriesTemplateUri": {
+                        "value": "[parameters('dnsEntriesTemplateUri')]"
+                    },
+                    "deploymentNameSuffix": {
+                        "value": "[parameters('deploymentNameSuffix')]"
+                    }
+                },
+                "templateLink": {
+                    "uri": "[parameters('dnsEntriesHandlerTemplateUri')]"
+                }
+            }
+        }
+    ]
+}

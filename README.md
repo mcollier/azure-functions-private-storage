@@ -35,6 +35,8 @@ There are a few important details about the configuration of the function:
   - _WEBSITE_DNS_SERVER_ - 168.63.129.16
   - _WEBSITE_VNET_ROUTE_ALL_ - 1
 
+The function is configured to [run from a deployment package](https://docs.microsoft.com/azure/azure-functions/run-functions-from-deployment-package).  As such, the package is persisted in an Azure File share referenced by the [WEBSITE_CONTENTAZUREFILECONNECTIONSTRING](https://docs.microsoft.com/azure/azure-functions/functions-app-settings#website_contentazurefileconnectionstring) application setting.
+
 ### Azure Storage accounts
 
 There are four Azure Storage accounts used in this sample:
@@ -68,8 +70,6 @@ The sample uses four subnets:
 - Subnet for the virtual machine.
 - Subnet for the Azure Bastion host.
 
-### Private DNS Zones
-
 ### Private Endpoints
 
 [Azure Private Endpoints](https://docs.microsoft.com/azure/private-link/private-endpoint-overview) are used to connect to specific Azure resources using a private IP address.  This ensures that network traffic remains within the designated virtual network, and access is available only for specific resources.  This sample configures private endpoints for the following Azure resources:
@@ -80,6 +80,20 @@ The sample uses four subnets:
   - Azure Blob storage
   - Azure Queue storage
   - Azure Table storage
+  
+### Private DNS Zones
+
+Using a private endpoint to connect to Azure resources means connecting to a private IP address instead of the public endpoint.  Existing Azure services are configured to use existing DNS to connect to the public endpoint.  The DNS configuration will need to be overridden to connect to the private endpoint.
+
+A private DNS zone will be created for each Azure resource configured with a private endpoint.  A DNS A record is created for each private IP address associated with the private endpoint. 
+
+The following DNS zones are created in this sample:
+
+- privatelink.queue.core.windows.net
+- privatelink.blob.core.windows.net
+- privatelink.table.core.windows.net
+- privatelink.file.core.windows.net
+- privatelink.documents.azure.com
 
 ### Application Insights
 

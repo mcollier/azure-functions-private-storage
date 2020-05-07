@@ -16,6 +16,10 @@ It is currently not possible to use the storage account referenced by *AzureWebJ
 
 [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fgithub.com%2Fmcollier%2Fazure-functions-private-storage.git)
 
+### Prerequisites
+
+### Resource Manager Template
+
 Execute the [ARM template in the template directory](./template/azuredeploy.json).  A [script](./template/deploy.sh) is provided to deploy the template.
 
 ## Architecture Overview

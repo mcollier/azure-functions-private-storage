@@ -19,10 +19,20 @@ It is currently not possible to use the storage account referenced by *AzureWebJ
 ### Prerequisites
 
 - Azure subscription. Get a free Azure account at [https://azure.microsoft.com/free/](https://azure.microsoft.com/free/).
+- [Azure CLI](https://docs.microsoft.com/cli/azure/install-azure-cli)
+- [Azure Functions Core Tools](https://docs.microsoft.com/azure/azure-functions/functions-run-local)
 
 ### Resource Manager Template
 
 Execute the [ARM template in the template directory](./template/azuredeploy.json).  A [script](./template/deploy.sh) is provided to deploy the template.
+
+The template will provision all the necessary Azure resources.  The template will also create the application settings needed by the included Azure Function sample code.  The function can optionally (disabled by default) publish the function.
+
+The function can be published manually by using the [Azure Functions Core Tools](https://docs.microsoft.com/azure/azure-functions/functions-run-local?tabs=linux%2Ccsharp%2Cbash#publish).
+
+```bash
+func azure functionapp publish <function-app-name>
+```
 
 ## Architecture Overview
 
@@ -47,15 +57,15 @@ The function is configured to [run from a deployment package](https://docs.micro
 
 There are four Azure Storage accounts used in this sample:
 
-- two storage accounts use a private endpoint
+- two storage accounts which use a private endpoint
   - a storage account used by the Azure Functions runtime for metadata (as referenced by the [AzureWebJobsStorage](https://docs.microsoft.com/azure/azure-functions/functions-app-settings#azurewebjobsstorage) setting).
-  - a storage account with a queue
+  - a storage account with a blob container (container created by the ARM template)
 - one storage account with no virtual network restrictions (indicated by the [WEBSITE_CONTENTAZUREFILECONNECTIONSTRING](https://docs.microsoft.com/azure/azure-functions/functions-app-settings#website_contentazurefileconnectionstring) setting) will contain the application code.
 - one storage account used by the VM for diagnostics
 
 ### Azure CosmosDB
 
-Azure CosmosDB is used to persist the data processed by the Azure Function.  An Azure Function output binding is used for writing the data to the configured database and collection.
+Azure CosmosDB is used to persist the data processed by the Azure Function.  An Azure Function output binding is used for writing the data to the configured database and collection.  The ARM template will create the CosmosDB database account and collection.
 
 A [private endpoint is created and configured for use with CosmosDB](https://docs.microsoft.com/azure/cosmos-db/how-to-configure-private-endpoints).
 
@@ -63,7 +73,7 @@ A [private endpoint is created and configured for use with CosmosDB](https://doc
 
 An Azure VM is created as a way to access the Azure resources from within the virtual network.  The VM has no public IP address nor port access (e.g. RDP).  [Azure Bastion](https://docs.microsoft.com/azure/bastion/bastion-overview) is used to connect to the VM.
 
-The included ARM template configures the VM to shut down each evening at 7pm Eastern.  This is done as a cost-savings measure.
+The included ARM template configures the VM to shut down each evening at 7pm UTC.  This is done as a cost-savings measure.
 
 ### Virtual Network
 

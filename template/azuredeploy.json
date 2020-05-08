@@ -14,7 +14,7 @@
         "cosmosDbContainerName": {
             "type": "string"
         },
-        "storageQueueName": {
+        "blobContainerName": {
             "type": "string"
         },
         "deploySourceCode": {
@@ -30,13 +30,13 @@
         },
         "virtualNetworkAddressPrefix": {
             "type": "string",
-            "defaultValue":"10.100.0.0/16"
+            "defaultValue": "10.100.0.0/16"
         },
         "bastionSubnetAddressPrefix": {
             "type": "string",
             "defaultValue": "10.100.3.0/27"
         },
-        "virtualMachineSubnetAddressPrefix":{
+        "virtualMachineSubnetAddressPrefix": {
             "type": "string",
             "defaultValue": "10.100.2.0/24"
         },
@@ -55,12 +55,12 @@
         "functionAppName": "[concat(variables('uniqueStringId'), '-funcapp')]",
         "vnetName": "[concat(variables('uniqueStringId'), '-vnet')]",
         "functionWebJobsStorageAccountName": "[toLower(concat(variables('uniqueStringId'), 'wjsa'))]",
-        "privateEndpointStorageAccountName": "[toLower(concat(variables('uniqueStringId'), 'pe'))]",
+        "censusDataStorageAccountName": "[toLower(concat(variables('uniqueStringId'), 'pe'))]",
         "functionAppContentStorageAccountName": "[toLower(concat(variables('uniqueStringId'), 'ac'))]",
         "applicationInsightsName": "[concat(variables('uniqueStringId'), '-ai')]",
         "functionsSubnetName": "[concat(variables('uniqueStringId'), '-subnet-functions')]",
         "privateEndpointSubnetName": "[concat(variables('uniqueStringId'), '-subnet-privateendpoint')]",
-        "privateEndpointStorageQueueName": "[concat(variables('uniqueStringId'), '-queue-private-endpoint')]",
+        "privateEndpointStorageBlobName": "[concat(variables('uniqueStringId'), '-blob-private-endpoint')]",
         "privateEndpointCosmosDbName": "[concat(variables('uniqueStringId'), '-cosmosdb-private-endpoint')]",
         "privateEndpointWebJobsQueueStorageName": "[concat(variables('uniqueStringId'), '-wjsa-queue-private-endpoint')]",
         "privateEndpointWebJobsTableStorageName": "[concat(variables('uniqueStringId'), '-wjsa-table-private-endpoint')]",
@@ -203,7 +203,7 @@
             "type": "Microsoft.Storage/storageAccounts",
             "apiVersion": "2019-06-01",
             "location": "[parameters('location')]",
-            "name": "[variables('privateEndpointStorageAccountName')]",
+            "name": "[variables('censusDataStorageAccountName')]",
             "sku": {
                 "name": "Standard_LRS",
                 "tier": "Standard"
@@ -232,7 +232,17 @@
                     },
                     "keySource": "Microsoft.Storage"
                 }
-            }
+            },
+            "resources": [
+                {
+                    "name": "[concat('default/', parameters('blobContainerName'))]",
+                    "type": "blobServices/containers",
+                    "apiVersion": "2018-07-01",
+                    "dependsOn": [
+                        "[variables('censusDataStorageAccountName')]"
+                    ]
+                }
+            ]
         },
         {
             "type": "Microsoft.Storage/storageAccounts",
@@ -552,11 +562,11 @@
         },
         {
             "type": "Microsoft.Network/privateEndpoints",
-            "name": "[variables('privateEndpointStorageQueueName')]",
+            "name": "[variables('privateEndpointStorageBlobName')]",
             "apiVersion": "2019-11-01",
             "location": "[parameters('location')]",
             "dependsOn": [
-                "[resourceId('Microsoft.Storage/storageAccounts', variables('privateEndpointStorageAccountName'))]",
+                "[resourceId('Microsoft.Storage/storageAccounts', variables('censusDataStorageAccountName'))]",
                 "[resourceId('Microsoft.Network/virtualNetworks', variables('vnetName'))]"
             ],
             "properties": {
@@ -565,11 +575,11 @@
                 },
                 "privateLinkServiceConnections": [
                     {
-                        "name": "MyStorageQueuePrivateLinkConnection",
+                        "name": "MyStorageBlobPrivateLinkConnection",
                         "properties": {
-                            "privateLinkServiceId": "[resourceId('Microsoft.Storage/storageAccounts', variables('privateEndpointStorageAccountName'))]",
+                            "privateLinkServiceId": "[resourceId('Microsoft.Storage/storageAccounts', variables('censusDataStorageAccountName'))]",
                             "groupIds": [
-                                "queue"
+                                "blob"
                             ]
                         }
                     }
@@ -577,20 +587,20 @@
             }
         },
         {
-            "type":"Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
+            "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
             "apiVersion": "2020-03-01",
-            "location":"[parameters('location')]",
-            "name":"[concat(variables('privateEndpointStorageQueueName'), '/default')]",
-            "dependsOn":[
-                "[resourceId('Microsoft.Network/privateDnsZones', variables('privateStorageQueueDnsZoneName'))]",
-                "[resourceId('Microsoft.Network/privateEndpoints', variables('privateEndpointStorageQueueName'))]"
+            "location": "[parameters('location')]",
+            "name": "[concat(variables('privateEndpointStorageBlobName'), '/default')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/privateDnsZones', variables('privateStorageBlobDnsZoneName'))]",
+                "[resourceId('Microsoft.Network/privateEndpoints', variables('privateEndpointStorageBlobName'))]"
             ],
-            "properties":{
+            "properties": {
                 "privateDnsZoneConfigs": [
                     {
                         "name": "config1",
                         "properties": {
-                            "privateDnsZoneId": "[resourceId('Microsoft.Network/privateDnsZones', variables('privateStorageQueueDnsZoneName'))]"
+                            "privateDnsZoneId": "[resourceId('Microsoft.Network/privateDnsZones', variables('privateStorageBlobDnsZoneName'))]"
                         }
                     }
                 ]
@@ -986,12 +996,12 @@
                             "value": "168.63.129.16"
                         },
                         {
-                            "name": "PrivateAzureStorageConnection",
-                            "value": "[concat('DefaultEndpointsProtocol=https;AccountName=',variables('privateEndpointStorageAccountName'),';AccountKey=',listkeys(resourceId('Microsoft.Storage/storageAccounts', variables('privateEndpointStorageAccountName')), '2018-11-01').keys[0].value,';')]"
+                            "name": "CensusResultsAzureStorageConnection",
+                            "value": "[concat('DefaultEndpointsProtocol=https;AccountName=',variables('censusDataStorageAccountName'),';AccountKey=',listkeys(resourceId('Microsoft.Storage/storageAccounts', variables('censusDataStorageAccountName')), '2018-11-01').keys[0].value,';')]"
                         },
                         {
-                            "name": "QueueName",
-                            "value": "[parameters('storageQueueName')]"
+                            "name": "ContainerName",
+                            "value": "[parameters('blobContainerName')]"
                         },
                         {
                             "name": "CosmosDbName",
@@ -1042,7 +1052,7 @@
                 },
                 {
                     "type": "config",
-                    "name":"web",
+                    "name": "web",
                     "apiVersion": "2019-08-01",
                     "dependsOn": [
                         "[resourceId('Microsoft.Web/sites', variables('functionAppName'))]",
@@ -1055,5 +1065,6 @@
             ]
         }
     ],
-    "outputs": {}
+    "outputs": {
+    }
 }

@@ -11,24 +11,9 @@ namespace Company.Function
 {
     public static class MyFunctions
     {
-        [FunctionName("QueueTrigger")]
-        public static async Task GetMessagesFunctionsAsync(
-            [QueueTrigger("%QueueName%", Connection = "PrivateAzureStorageConnection")] string queueItem,
-            [CosmosDB(
-                databaseName: "%CosmosDbName%",
-                collectionName: "%CosmosDbCollectionName%",
-                ConnectionStringSetting = "CosmosDBConnection")]
-                IAsyncCollector<string> items,
-            ILogger logger)
-        {
-            logger.LogInformation($"Queue trigger processed: {queueItem}");
-
-            await items.AddAsync(queueItem);
-        }
-
-        [FunctionName("BlobTrigger")]
-        public static async Task GetFiles(
-            [BlobTrigger("%ContainerName%/{blobName}", Connection = "PrivateAzureStorageConnection")] Stream myBlobStream,
+        [FunctionName("CensusDataFilesFunction")]
+        public static async Task ProcessCensusDataFiles(
+            [BlobTrigger("%ContainerName%/{blobName}", Connection = "CensusResultsAzureStorageConnection")] Stream myBlobStream,
             string blobName,
             [CosmosDB(
                 databaseName: "%CosmosDbName%",
@@ -36,7 +21,7 @@ namespace Company.Function
                 ConnectionStringSetting = "CosmosDBConnection")] IAsyncCollector<string> items,
             ILogger logger)
         {
-            logger.LogInformation($"C# Blob trigger function Processed blob\n Name:{blobName} \n Size: {myBlobStream.Length} Bytes");
+            logger.LogInformation($"C# Blob trigger function processed blob of name '{blobName}' with size of {myBlobStream.Length} bytes");
 
             var jsonObject = await ConvertCsvToJsonAsync(myBlobStream);
 

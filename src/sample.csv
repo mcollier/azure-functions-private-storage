@@ -1,5 +1,5 @@
-name, zip, age
-michael, 43040, 41
-sonja, 43040, 40
-joe, 43322, 54
-sam, 56873, 21
+postal-code, name, age
+43040, michael, 41
+43040, sonja, 40
+43322, joe, 54
+56873, sam, 21

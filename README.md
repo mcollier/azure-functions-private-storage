@@ -18,6 +18,8 @@ It is currently not possible to use the storage account referenced by *AzureWebJ
 
 ### Prerequisites
 
+- Azure subscription. Get a free Azure account at [https://azure.microsoft.com/free/](https://azure.microsoft.com/free/).
+
 ### Resource Manager Template
 
 Execute the [ARM template in the template directory](./template/azuredeploy.json).  A [script](./template/deploy.sh) is provided to deploy the template.
@@ -102,7 +104,3 @@ The following DNS zones are created in this sample:
 ### Application Insights
 
 [Application Insights](https://docs.microsoft.com/azure/azure-monitor/app/app-insights-overview) is used to [monitor the Azure Function](https://docs.microsoft.com/azure/azure-functions/functions-monitoring).
-
-#### Thank you
-
-Credit to Pasi Huuhka [@DrBushyTop](https://twitter.com/DrBushyTop) and the post at https://www.huuhka.net/automating-azure-private-link-storage-private-endpoints/ for the information on using ARM templates to get the IP addresses for the private DNS A records.

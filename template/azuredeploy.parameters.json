@@ -17,9 +17,6 @@
         "storageQueueName": {
             "value": "widgets"
         },
-        "deploySourceCode": {
-            "value": true
-        },
         "function_repo_url": {
             "value": "https://github.com/mcollier/azure-functions-private-storage.git"
         }

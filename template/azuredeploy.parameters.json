@@ -9,13 +9,13 @@
             "value": "[PASSWORD GOES HERE]"
         },
         "cosmosDbDatabaseName": {
-            "value": "WidgetsDb"
+            "value": "Census"
         },
         "cosmosDbContainerName": {
-            "value": "Users"
+            "value": "census2020"
         },
-        "storageQueueName": {
-            "value": "widgets"
+        "blobContainerName": {
+            "value": "census-results"
         },
         "function_repo_url": {
             "value": "https://github.com/mcollier/azure-functions-private-storage.git"

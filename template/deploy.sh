@@ -1,10 +1,10 @@
 #!/bin/bash
 
 #az login
-az account set -s c68d7703-d6ed-46a5-b1f4-ac8fe4a81ac9
+az account set -s [YOUR-SUBSCRIPTION-ID]
 
 
-resourceGroupName="functions-private-endpoints-eastus"
+resourceGroupName="functions-private-endpoints"
 location="eastus"
 now=`date +%Y%m%d-%H%M%S`
 deploymentName="azuredeploy-$now"

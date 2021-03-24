@@ -104,8 +104,6 @@
                             "addressPrefix": "[parameters('functionSubnetAddressPrefix')]",
                             "privateEndpointNetworkPolicies": "Enabled",
                             "privateLinkServiceNetworkPolicies": "Enabled",
-                            "serviceEndpoints": [
-                            ],
                             "delegations": [
                                 {
                                     "name": "webapp",
@@ -123,10 +121,6 @@
                         "name": "[variables('privateEndpointSubnetName')]",
                         "properties": {
                             "addressPrefix": "[parameters('privateEndpointSubnetAddressPrefix')]",
-                            "serviceEndpoints": [
-                            ],
-                            "delegations": [
-                            ],
                             "privateLinkServiceNetworkPolicies": "Enabled",
                             "privateEndpointNetworkPolicies": "Disabled"
                         }
@@ -269,20 +263,16 @@
         {
             "type": "Microsoft.DocumentDB/databaseAccounts",
             "name": "[variables('privateCosmosDbAccountName')]",
-            "apiVersion": "2020-03-01",
+            "apiVersion": "2021-01-15",
             "kind": "GlobalDocumentDB",
             "location": "[parameters('location')]",
             "properties": {
                 "consistencyPolicy": {
-                    "Session": {
-                        "defaultConsistencyLevel": "Session"
-                    }
+                    "defaultConsistencyLevel": "Session"
                 },
                 "locations": [
                     {
-                        "locationName": "[parameters('location')]",
-                        "failoverPriority": 0,
-                        "isZoneRedundant": false
+                        "locationName": "[parameters('location')]"
                     }
                 ],
                 "databaseAccountOfferType": "Standard",
@@ -294,7 +284,7 @@
         {
             "type": "Microsoft.DocumentDB/databaseAccounts/sqlDatabases",
             "name": "[concat(variables('privateCosmosDbAccountName'), '/', parameters('cosmosDbDatabaseName'))]",
-            "apiVersion": "2019-08-01",
+            "apiVersion": "2021-01-15",
             "dependsOn": [
                 "[resourceId('Microsoft.DocumentDB/databaseAccounts', variables('privateCosmosDbAccountName'))]"
             ],
@@ -309,7 +299,7 @@
         {
             "type": "Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers",
             "name": "[concat(variables('privateCosmosDbAccountName'), '/', parameters('cosmosDbDatabaseName'), '/', parameters('cosmosDbContainerName'))]",
-            "apiVersion": "2019-08-01",
+            "apiVersion": "2021-01-15",
             "dependsOn": [
                 "[resourceId('Microsoft.DocumentDB/databaseAccounts/sqlDatabases', variables('privateCosmosDbAccountName'), parameters('cosmosDbDatabaseName'))]",
                 "[resourceId('Microsoft.DocumentDB/databaseAccounts', variables('privateCosmosDbAccountName'))]"
@@ -958,10 +948,10 @@
                             "name": "WEBSITE_NODE_DEFAULT_VERSION",
                             "value": "~12"
                         },
-                        {
-                            "name": "WEBSITE_VNET_ROUTE_ALL",
-                            "value": "1"
-                        },
+                        // {
+                        //     "name": "WEBSITE_VNET_ROUTE_ALL",
+                        //     "value": "1"
+                        // },
                         {
                             "name": "WEBSITE_DNS_SERVER",
                             "value": "168.63.129.16"

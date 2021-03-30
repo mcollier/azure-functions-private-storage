@@ -45,8 +45,8 @@ The Azure Function app provisioned in this sample uses an [Azure Functions Premi
 There are a few important details about the configuration of the function:
 
 - Virtual network trigger support must be enabled in order for the function to trigger based on resources using a private endpoint
-- In order to make [calls to a resource using a private endpoint](https://docs.microsoft.com/azure/azure-functions/functions-networking-options#azure-dns-private-zones), it is necessary to integrate with Azure DNS Private Zones. Therefore, it is necessary to configure the app to use a specific Azure DNS server.  This is accomplished by setting `WEBSITE_DNS_SERVER` to 168.63.129.16.
-- Enable the application connect to be accessible over the virtual network.  This is accomplished by setting `WEBSITE_CONTENTOVERVNET` to 1.
+- In order to make [calls to a resource using a private endpoint](https://docs.microsoft.com/azure/azure-functions/functions-networking-options#azure-dns-private-zones), it is necessary to integrate with Azure DNS Private Zones. Therefore, it is necessary to configure the app to use a specific Azure DNS server.  This is accomplished by setting `WEBSITE_DNS_SERVER` to 168.63.129.16 and `WEBSITE_VNET_ROUTE_ALL` to 1.
+- Enable the application content to be accessible over the virtual network.  This is accomplished by setting `WEBSITE_CONTENTOVERVNET` to 1.
 
 The function is configured to [run from a deployment package](https://docs.microsoft.com/azure/azure-functions/run-functions-from-deployment-package).  As such, the package is persisted in an Azure File share referenced by the [WEBSITE_CONTENTAZUREFILECONNECTIONSTRING](https://docs.microsoft.com/azure/azure-functions/functions-app-settings#website_contentazurefileconnectionstring) application setting.
 

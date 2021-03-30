@@ -953,6 +953,10 @@
                             "value": "1"
                         },
                         {
+                            "name": "WEBSITE_VNET_ROUTE_ALL",
+                            "value": "1"
+                        },
+                        {
                             "name": "CensusResultsAzureStorageConnection",
                             "value": "[concat('DefaultEndpointsProtocol=https;AccountName=',variables('censusDataStorageAccountName'),';AccountKey=',listkeys(resourceId('Microsoft.Storage/storageAccounts', variables('censusDataStorageAccountName')), '2018-11-01').keys[0].value,';')]"
                         },

@@ -3,7 +3,8 @@ name: Build .NET Core
 on:
   push:
     branches: [ master ]
-    paths-ignore: ./template
+    paths-ignore:
+      - ./template
   pull_request:
     branches: [ master ]
     paths-ignore: ./template
@@ -15,10 +16,10 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-    - name: Setup .NET Core
+    - name: Build .NET Core
       uses: actions/setup-dotnet@v1
       with:
-        dotnet-version: 3.1.101
+        dotnet-version: 3.1.x
     - name: Install dependencies
       working-directory: ./src
       run: dotnet restore

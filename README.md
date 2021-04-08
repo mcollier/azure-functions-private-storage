@@ -6,11 +6,9 @@
 
 ## Summary
 
-This sample shows how to use Azure Functions with [private endpoints](https://docs.microsoft.com/azure/private-link/private-endpoint-overview) for Azure Storage and CosmosDB.  The use of private endpoints enables private (vnet only) access to designated Azure resources.
+This sample shows how to use Azure Functions with [private endpoints](https://docs.microsoft.com/azure/private-link/private-endpoint-overview) for Azure Storage and CosmosDB.  The use of private endpoints enables private (virtual network only) access to designated Azure resources.
 
-One of the key scenarios in this sample is the use of Azure Storage private endpoints with the storage account required for use with Azure Functions.  Azure Functions uses a storage account for metadata related to the runtime and various triggers.  The storage account is referenced via the [AzureWebJobsStorage](https://docs.microsoft.com/azure/azure-functions/functions-app-settings#azurewebjobsstorage) application setting.  The *AzureWebJobsStorage* account will be configured for access via private endpoints.
-
-It is currently not possible to use the storage account referenced by *AzureWebJobsStorage* for the Azure Function's application code **[if that storage account uses any virtual network restrictions](https://docs.microsoft.com/azure/azure-functions/functions-networking-options#restrict-your-storage-account-to-a-virtual-network)**.  Therefore, another Azure Storage account, without virtual network restrictions, is needed.
+One of the key scenarios in this sample is the use of Azure Storage private endpoints with the storage account required for use with Azure Functions.  Azure Functions uses a storage account for metadata related to the runtime and various triggers, as well as application code.  The storage account is referenced in the [AzureWebJobsStorage](https://docs.microsoft.com/azure/azure-functions/functions-app-settings#azurewebjobsstorage) application setting.  The *AzureWebJobsStorage* account will be configured for access via private endpoints.
 
 ## Deployment
 
@@ -47,20 +45,19 @@ The Azure Function app provisioned in this sample uses an [Azure Functions Premi
 There are a few important details about the configuration of the function:
 
 - Virtual network trigger support must be enabled in order for the function to trigger based on resources using a private endpoint
-- In order to make [calls to a resource using a private endpoint](https://docs.microsoft.com/azure/azure-functions/functions-networking-options#azure-dns-private-zones), it is necessary to integrate with Azure DNS Private Zones. Therefore, it is necessary to configure the app to use a specific Azure DNS server, and also route all network traffic into the virtual network.  This is accomplished by setting the following application settings:
-  - _WEBSITE_DNS_SERVER_ - 168.63.129.16
-  - _WEBSITE_VNET_ROUTE_ALL_ - 1
+- In order to make [calls to a resource using a private endpoint](https://docs.microsoft.com/azure/azure-functions/functions-networking-options#azure-dns-private-zones), it is necessary to integrate with Azure DNS Private Zones. Therefore, it is necessary to configure the app to use a specific Azure DNS server.  This is accomplished by setting `WEBSITE_DNS_SERVER` to 168.63.129.16 and `WEBSITE_VNET_ROUTE_ALL` to 1.
+- Enable the application content to be accessible over the virtual network.  This is accomplished by setting `WEBSITE_CONTENTOVERVNET` to 1.
 
 The function is configured to [run from a deployment package](https://docs.microsoft.com/azure/azure-functions/run-functions-from-deployment-package).  As such, the package is persisted in an Azure File share referenced by the [WEBSITE_CONTENTAZUREFILECONNECTIONSTRING](https://docs.microsoft.com/azure/azure-functions/functions-app-settings#website_contentazurefileconnectionstring) application setting.
 
+For more information on restricting an Azure storage account to a virtual network for use with Azure Functions, please [refer to this official documentation](https://docs.microsoft.com/azure/azure-functions/configure-networking-how-to#restrict-your-storage-account-to-a-virtual-network).
+
 ### Azure Storage accounts
 
-There are four Azure Storage accounts used in this sample:
+There are three Azure Storage accounts used in this sample:
 
-- two storage accounts which use a private endpoint
-  - a storage account used by the Azure Functions runtime for metadata (as referenced by the [AzureWebJobsStorage](https://docs.microsoft.com/azure/azure-functions/functions-app-settings#azurewebjobsstorage) setting).
-  - a storage account with a blob container (container created by the ARM template)
-- one storage account with no virtual network restrictions (indicated by the [WEBSITE_CONTENTAZUREFILECONNECTIONSTRING](https://docs.microsoft.com/azure/azure-functions/functions-app-settings#website_contentazurefileconnectionstring) setting) will contain the application code.
+- a storage accounts which use a private endpoint for the Azure Functions runtime
+- a storage account with a private endpoint, which is set up with a blob container (created by the ARM template).  This is the storage account on which the function triggers (blob trigger).
 - one storage account used by the VM for diagnostics
 
 ### Azure CosmosDB
@@ -101,7 +98,7 @@ The sample uses four subnets:
 
 Using a private endpoint to connect to Azure resources means connecting to a private IP address instead of the public endpoint.  Existing Azure services are configured to use existing DNS to connect to the public endpoint.  The DNS configuration will need to be overridden to connect to the private endpoint.
 
-A private DNS zone will be created for each Azure resource configured with a private endpoint.  A DNS A record is created for each private IP address associated with the private endpoint. 
+A private DNS zone will be created for each Azure resource configured with a private endpoint.  A DNS A record is created for each private IP address associated with the private endpoint.
 
 The following DNS zones are created in this sample:
 

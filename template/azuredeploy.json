@@ -56,7 +56,6 @@
         "vnetName": "[concat(variables('uniqueStringId'), '-vnet')]",
         "functionWebJobsStorageAccountName": "[toLower(concat(variables('uniqueStringId'), 'wjsa'))]",
         "censusDataStorageAccountName": "[toLower(concat(variables('uniqueStringId'), 'pe'))]",
-        "functionAppContentStorageAccountName": "[toLower(concat(variables('uniqueStringId'), 'ac'))]",
         "applicationInsightsName": "[concat(variables('uniqueStringId'), '-ai')]",
         "functionsSubnetName": "[concat(variables('uniqueStringId'), '-subnet-functions')]",
         "privateEndpointSubnetName": "[concat(variables('uniqueStringId'), '-subnet-privateendpoint')]",
@@ -78,7 +77,7 @@
         "vmNsgName": "[concat(variables('uniqueStringId'), '-vm-nsg')]",
         "privateCosmosDbAccountName": "[concat(variables('uniqueStringId'), '-cosmosdb-private')]",
         "bastionPublicIPAddressName": "[concat(variables('uniqueStringId'), '-bastion-pip')]",
-        "dnsLabelPrefix": "[concat(variables('uniqueStringId'), '-vm')]",
+        "dnsLabelPrefix": "[concat('a', variables('uniqueStringId'), '-vm')]",
         "bastionHostName": "[concat(variables('uniqueStringId'), '-bastion-host')]",
         "bastionSubnetName": "AzureBastionSubnet",
         "appInsightsResourceId": "[resourceId('Microsoft.Insights/components', variables('applicationInsightsName'))]"
@@ -105,8 +104,6 @@
                             "addressPrefix": "[parameters('functionSubnetAddressPrefix')]",
                             "privateEndpointNetworkPolicies": "Enabled",
                             "privateLinkServiceNetworkPolicies": "Enabled",
-                            "serviceEndpoints": [
-                            ],
                             "delegations": [
                                 {
                                     "name": "webapp",
@@ -124,10 +121,6 @@
                         "name": "[variables('privateEndpointSubnetName')]",
                         "properties": {
                             "addressPrefix": "[parameters('privateEndpointSubnetAddressPrefix')]",
-                            "serviceEndpoints": [
-                            ],
-                            "delegations": [
-                            ],
                             "privateLinkServiceNetworkPolicies": "Enabled",
                             "privateEndpointNetworkPolicies": "Disabled"
                         }
@@ -162,41 +155,6 @@
                 ],
                 "enableDdosProtection": false,
                 "enableVmProtection": false
-            }
-        },
-        {
-            "type": "Microsoft.Storage/storageAccounts",
-            "apiVersion": "2019-06-01",
-            "location": "[parameters('location')]",
-            "name": "[variables('functionAppContentStorageAccountName')]",
-            "sku": {
-                "name": "Standard_LRS",
-                "tier": "Standard"
-            },
-            "kind": "StorageV2",
-            "properties": {
-                "networkAcls": {
-                    "bypass": "AzureServices",
-                    "virtualNetworkRules": [
-                    ],
-                    "ipRules": [
-                    ],
-                    "defaultAction": "Allow"
-                },
-                "supportsHttpsTrafficOnly": true,
-                "encryption": {
-                    "services": {
-                        "file": {
-                            "keyType": "Account",
-                            "enabled": true
-                        },
-                        "blob": {
-                            "keyType": "Account",
-                            "enabled": true
-                        }
-                    },
-                    "keySource": "Microsoft.Storage"
-                }
             }
         },
         {
@@ -283,6 +241,14 @@
             }
         },
         {
+            "type": "Microsoft.Storage/storageAccounts/fileServices/shares",
+            "apiVersion": "2019-06-01",
+            "name": "[concat(variables('functionWebJobsStorageAccountName'), '/default/', 'myfunctionfiles')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Storage/storageAccounts', variables('functionWebJobsStorageAccountName'))]"
+            ]
+        },
+        {
             "type": "Microsoft.Storage/storageAccounts",
             "apiVersion": "2019-04-01",
             "name": "[variables('vmDiagnosticStorageAccountName')]",
@@ -297,20 +263,16 @@
         {
             "type": "Microsoft.DocumentDB/databaseAccounts",
             "name": "[variables('privateCosmosDbAccountName')]",
-            "apiVersion": "2020-03-01",
+            "apiVersion": "2021-01-15",
             "kind": "GlobalDocumentDB",
             "location": "[parameters('location')]",
             "properties": {
                 "consistencyPolicy": {
-                    "Session": {
-                        "defaultConsistencyLevel": "Session"
-                    }
+                    "defaultConsistencyLevel": "Session"
                 },
                 "locations": [
                     {
-                        "locationName": "[parameters('location')]",
-                        "failoverPriority": 0,
-                        "isZoneRedundant": false
+                        "locationName": "[parameters('location')]"
                     }
                 ],
                 "databaseAccountOfferType": "Standard",
@@ -322,7 +284,7 @@
         {
             "type": "Microsoft.DocumentDB/databaseAccounts/sqlDatabases",
             "name": "[concat(variables('privateCosmosDbAccountName'), '/', parameters('cosmosDbDatabaseName'))]",
-            "apiVersion": "2019-08-01",
+            "apiVersion": "2021-01-15",
             "dependsOn": [
                 "[resourceId('Microsoft.DocumentDB/databaseAccounts', variables('privateCosmosDbAccountName'))]"
             ],
@@ -337,7 +299,7 @@
         {
             "type": "Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers",
             "name": "[concat(variables('privateCosmosDbAccountName'), '/', parameters('cosmosDbDatabaseName'), '/', parameters('cosmosDbContainerName'))]",
-            "apiVersion": "2019-08-01",
+            "apiVersion": "2021-01-15",
             "dependsOn": [
                 "[resourceId('Microsoft.DocumentDB/databaseAccounts/sqlDatabases', variables('privateCosmosDbAccountName'), parameters('cosmosDbDatabaseName'))]",
                 "[resourceId('Microsoft.DocumentDB/databaseAccounts', variables('privateCosmosDbAccountName'))]"
@@ -946,8 +908,7 @@
             "location": "[parameters('location')]",
             "dependsOn": [
                 "[resourceId('Microsoft.Web/serverfarms', variables('appServicePlanName'))]",
-                "[resourceId('Microsoft.Storage/storageAccounts', variables('functionWebJobsStorageAccountName'))]",
-                "[resourceId('Microsoft.Storage/storageAccounts', variables('functionAppContentStorageAccountName'))]"
+                "[resourceId('Microsoft.Storage/storageAccounts', variables('functionWebJobsStorageAccountName'))]"
             ],
             "kind": "functionapp",
             "properties": {
@@ -977,23 +938,23 @@
                         },
                         {
                             "name": "WEBSITE_CONTENTAZUREFILECONNECTIONSTRING",
-                            "value": "[concat('DefaultEndpointsProtocol=https;AccountName=',variables('functionAppContentStorageAccountName'),';AccountKey=',listkeys(resourceId('Microsoft.Storage/storageAccounts', variables('functionAppContentStorageAccountName')), '2018-11-01').keys[0].value,';')]"
+                            "value": "[concat('DefaultEndpointsProtocol=https;AccountName=',variables('functionWebJobsStorageAccountName'),';AccountKey=',listkeys(resourceId('Microsoft.Storage/storageAccounts', variables('functionWebJobsStorageAccountName')), '2018-11-01').keys[0].value,';')]"
                         },
                         {
                             "name": "WEBSITE_CONTENTSHARE",
-                            "value": "[toLower(variables('appServicePlanName'))]"
-                        },
-                        {
-                            "name": "WEBSITE_NODE_DEFAULT_VERSION",
-                            "value": "~12"
-                        },
-                        {
-                            "name": "WEBSITE_VNET_ROUTE_ALL",
-                            "value": "1"
+                            "value": "myfunctionfiles"
                         },
                         {
                             "name": "WEBSITE_DNS_SERVER",
                             "value": "168.63.129.16"
+                        },
+                        {
+                            "name": "WEBSITE_CONTENTOVERVNET",
+                            "value": "1"
+                        },
+                        {
+                            "name": "WEBSITE_VNET_ROUTE_ALL",
+                            "value": "1"
                         },
                         {
                             "name": "CensusResultsAzureStorageConnection",

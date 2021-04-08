@@ -65,5 +65,15 @@ namespace Company.Function
 
             return jsonObjects;
         }
+
+        [FunctionName("EventHubTriggerCSharp")]
+        public static void Run(
+            [EventHubTrigger("%EventHubName%", Connection = "EventHubConnectionAppSetting")] string myEventHubMessage,
+            [Blob("events/{rand-guid}.txt", FileAccess.Write)] out string outputMessage,
+            ILogger log)
+        {
+            log.LogInformation($"C# function triggered to process a message: {myEventHubMessage}");
+            outputMessage = myEventHubMessage;
+        }
     }
 }

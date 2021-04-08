@@ -47,6 +47,14 @@
         "privateEndpointSubnetAddressPrefix": {
             "type": "string",
             "defaultValue": "10.100.1.0/24"
+        },
+        "eventHubNamespace": {
+            "type": "string",
+            "defaultValue": "[concat(uniqueString(resourceGroup().id), '-eventhub-namespace')]"
+        },
+        "eventHubName": {
+            "type": "string",
+            "defaultValue": "[concat(uniqueString(resourceGroup().id), '-eventhub')]"
         }
     },
     "variables": {
@@ -65,11 +73,13 @@
         "privateEndpointWebJobsTableStorageName": "[concat(variables('uniqueStringId'), '-wjsa-table-private-endpoint')]",
         "privateEndpointWebJobsBlobStorageName": "[concat(variables('uniqueStringId'), '-wjsa-blob-private-endpoint')]",
         "privateEndpointWebJobsFileStorageName": "[concat(variables('uniqueStringId'), '-wjsa-file-private-endpoint')]",
+        "privateEndpointEventHubNamespaceName": "[concat(variables('uniqueStringId'), '-eventhub-namespace')]",
         "privateStorageQueueDnsZoneName": "privatelink.queue.core.windows.net",
         "privateStorageBlobDnsZoneName": "privatelink.blob.core.windows.net",
         "privateStorageTableDnsZoneName": "privatelink.table.core.windows.net",
         "privateStorageFileDnsZoneName": "privatelink.file.core.windows.net",
         "privateCosmosDbDnsZoneName": "privatelink.documents.azure.com",
+        "privateEventHubNamespaceDnsZoneName": "[concat('privatelink', if(equals(toLower(environment().name), 'azureusgovernment'), '.servicebus.usgovcloudapi.net', '.servicebus.windows.net'))]",
         "vmDiagnosticStorageAccountName": "[concat(variables('uniqueStringId'), 'vmdiag')]",
         "virtualMachineName": "[concat(variables('uniqueStringId'), 'vm')]",
         "vmNicName": "[concat(variables('uniqueStringId'), '-vm-nic')]",
@@ -104,6 +114,12 @@
                             "addressPrefix": "[parameters('functionSubnetAddressPrefix')]",
                             "privateEndpointNetworkPolicies": "Enabled",
                             "privateLinkServiceNetworkPolicies": "Enabled",
+                            "serviceEndpoints": [
+                                {
+                                    "locations": [ "*" ],
+                                    "service": "Microsoft.EventHub"
+                                }
+                            ],
                             "delegations": [
                                 {
                                     "name": "webapp",
@@ -122,7 +138,13 @@
                         "properties": {
                             "addressPrefix": "[parameters('privateEndpointSubnetAddressPrefix')]",
                             "privateLinkServiceNetworkPolicies": "Enabled",
-                            "privateEndpointNetworkPolicies": "Disabled"
+                            "privateEndpointNetworkPolicies": "Disabled",
+                            "serviceEndpoints": [
+                                {
+                                    "locations": [ "*" ],
+                                    "service": "Microsoft.EventHub"
+                                }
+                            ]
                         }
                     },
                     {
@@ -333,6 +355,69 @@
             }
         },
         {
+            "type": "Microsoft.EventHub/namespaces",
+            "apiVersion": "2018-01-01-preview",
+            "name": "[parameters('eventHubNamespace')]",
+            "location": "[parameters('location')]",
+            "sku": {
+                "name": "Standard",
+                "tier": "Standard"
+            },
+            "properties": {
+                "zoneRedundant": true,
+                "isAutoInflateEnabled": true,
+                "maximumThroughputUnits": 10
+            },
+            "resources": [
+                {
+                    "type": "eventhubs",
+                    "apiVersion": "2017-04-01",
+                    "name": "[parameters('eventHubName')]",
+                    "dependsOn": [
+                        "[resourceId('Microsoft.EventHub/namespaces', parameters('eventHubNamespace'))]"
+                    ],
+                    "properties": {},
+                    "resources": [
+                        {
+                            "type": "consumergroups",
+                            "apiVersion": "2017-04-01",
+                            "name": "MyConsumerGroup",
+                            "dependsOn": [
+                                "[resourceId('Microsoft.EventHub/namespaces/eventhubs', parameters('eventHubNamespace'), parameters('eventHubName'))]"
+                            ],
+                            "properties": {
+                                "userMetadata": "Stuff goes here"
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "type": "Microsoft.EventHub/namespaces/virtualnetworkrules",
+            "apiVersion": "2018-01-01-preview",
+            "location": "[parameters('location')]",
+            "name": "[concat(parameters('eventHubNamespace'), '/', 'functions-subnet')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.EventHub/namespaces', parameters('eventHubNamespace'))]"
+            ],
+            "properties": {
+                "virtualNetworkSubnetId": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('vnetName'), variables('functionsSubnetName'))]"
+            }
+        },
+        {
+            "type": "Microsoft.EventHub/namespaces/virtualnetworkrules",
+            "apiVersion": "2018-01-01-preview",
+            "location": "[parameters('location')]",
+            "name": "[concat(parameters('eventHubNamespace'), '/', 'privateendpoint-subnet')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.EventHub/namespaces', parameters('eventHubNamespace'))]"
+            ],
+            "properties": {
+                "virtualNetworkSubnetId": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('vnetName'), variables('privateEndpointSubnetName'))]"
+            }
+        },
+        {
             "type": "Microsoft.Compute/virtualMachines",
             "apiVersion": "2019-03-01",
             "name": "[variables('virtualMachineName')]",
@@ -443,6 +528,29 @@
             "properties": ""
         },
         {
+            "type": "Microsoft.Network/privateDnsZones",
+            "apiVersion": "2018-09-01",
+            "name": "[variables('privateEventHubNamespaceDnsZoneName')]",
+            "location": "global",
+            "properties": ""
+        },
+        {
+            "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
+            "apiVersion": "2018-09-01",
+            "location": "global",
+            "name": "[concat(variables('privateEventHubNamespaceDnsZoneName'), '/link_to_', variables('vnetName'))]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/virtualNetworks', variables('vnetName'))]",
+                "[resourceId('Microsoft.Network/privateDnsZones',variables('privateEventHubNamespaceDnsZoneName'))]"
+            ],
+            "properties": {
+                "registrationEnabled": false,
+                "virtualNetwork": {
+                    "id": "[resourceId('Microsoft.Network/virtualNetworks', variables('vnetName'))]"
+                }
+            }
+        },
+        {
             "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
             "apiVersion": "2018-09-01",
             "name": "[concat(variables('privateStorageQueueDnsZoneName'), '/', variables('privateStorageQueueDnsZoneName'), '-link')]",
@@ -520,6 +628,50 @@
                 "virtualNetwork": {
                     "id": "[resourceId('Microsoft.Network/virtualNetworks', variables('vnetName'))]"
                 }
+            }
+        },
+        {
+            "type": "Microsoft.Network/privateEndpoints",
+            "apiVersion": "2020-08-01",
+            "name": "[variables('privateEndpointEventHubNamespaceName')]",
+            "location": "[parameters('location')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.EventHub/namespaces', parameters('eventHubNamespace'))]",
+                "[resourceId('Microsoft.Network/virtualNetworks', variables('vnetName'))]"
+            ],
+            "properties": {
+                "subnet": {
+                    "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('vnetName'), variables('privateEndpointSubnetName') )]"
+                },
+                "privateLinkServiceConnections": [
+                    {
+                        "name": "",
+                        "properties": {
+                            "groupIds": [ "namespace" ],
+                            "privateLinkServiceId": "[resourceId('Microsoft.EventHub/namespaces', parameters('eventHubNamespace'))]"
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
+            "apiVersion": "2020-08-01",
+            "location": "[parameters('location')]",
+            "name": "[concat(variables('privateEndpointEventHubNamespaceName'), '/default')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/privateEndpoints',variables('privateEndpointEventHubNamespaceName'))]",
+                "[resourceId('Microsoft.Network/privateDnsZones',variables('privateEventHubNamespaceDnsZoneName'))]"
+            ],
+            "properties": {
+                "privateDnsZoneConfigs": [
+                    {
+                        "name": "config1",
+                        "properties": {
+                            "privateDnsZoneId": "[resourceId('Microsoft.Network/privateDnsZones',variables('privateEventHubNamespaceDnsZoneName'))]"
+                        }
+                    }
+                ]
             }
         },
         {
@@ -984,17 +1136,30 @@
                 }
             },
             "resources": [
+                // {
+                //     "type": "networkConfig",
+                //     "apiVersion": "2019-08-01",
+                //     "name": "virtualNetwork",
+                //     "dependsOn": [
+                //         "[concat('Microsoft.Web/sites/', variables('functionAppName'))]",
+                //         "[resourceId('Microsoft.Network/virtualNetworks', variables('vnetName'))]"
+                //     ],
+                //     "properties": {
+                //         "subnetResourceId": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('vnetName'), variables('functionsSubnetName'))]",
+                //         "isSwift": true
+                //     }
+                // },
                 {
-                    "type": "networkConfig",
-                    "apiVersion": "2019-08-01",
                     "name": "virtualNetwork",
+                    "type": "config",
+                    "apiVersion": "2020-09-01",
                     "dependsOn": [
                         "[concat('Microsoft.Web/sites/', variables('functionAppName'))]",
                         "[resourceId('Microsoft.Network/virtualNetworks', variables('vnetName'))]"
                     ],
                     "properties": {
                         "subnetResourceId": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('vnetName'), variables('functionsSubnetName'))]",
-                        "isSwift": true
+                        "swiftSupported": true
                     }
                 },
                 {

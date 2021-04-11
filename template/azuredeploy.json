@@ -50,7 +50,7 @@
         },
         "eventHubNamespace": {
             "type": "string",
-            "defaultValue": "[concat(uniqueString(resourceGroup().id), '-eventhub-namespace')]"
+            "defaultValue": "[concat('a', uniqueString(resourceGroup().id), '-eventhub-namespace')]"
         },
         "eventHubName": {
             "type": "string",
@@ -1293,9 +1293,11 @@
                 "WEBSITE_VNET_ROUTE_ALL": "1",
                 "WEBSITE_CONTENTOVERVNET": "1",
                 "WEBSITE_SKIP_CONTENTSHARE_VALIDATION": "1",
+                "EventHubName": "[parameters('eventHubName')]",
                 "ContainerName": "[parameters('blobContainerName')]",
                 "CosmosDbName": "[parameters('cosmosDbDatabaseName')]",
                 "CosmosDbCollectionName": "[parameters('cosmosDbContainerName')]",
+                "EventHubConnectionAppSetting": "[concat('@Microsoft.KeyVault(SecretUri=', reference(resourceId('Microsoft.KeyVault/vaults/secrets',variables('keyVaultName'),'EventHubConnectionStringSecret')).secretUri, ')')]",
                 "MySecret": "[concat('@Microsoft.KeyVault(SecretUri=', reference(resourceId('Microsoft.KeyVault/vaults/secrets',variables('keyVaultName'),'keyVaultSecret1')).secretUri, ')')]",
                 "CensusResultsAzureStorageConnection": "[concat('@Microsoft.KeyVault(SecretUri=', reference(resourceId('Microsoft.KeyVault/vaults/secrets',variables('keyVaultName'),'CensusResultsAzureStorageConnectionSecret')).secretUri, ')')]",
                 "CosmosDBConnection": "[concat('@Microsoft.KeyVault(SecretUri=', reference(resourceId('Microsoft.KeyVault/vaults/secrets',variables('keyVaultName'),'CosmosDBConnectionSecret')).secretUri, ')')]",
@@ -1421,6 +1423,18 @@
             ],
             "properties": {
                 "value": "[listConnectionStrings(resourceId('Microsoft.DocumentDB/databaseAccounts', variables('privateCosmosDbAccountName')), '2019-12-12').connectionStrings[0].connectionString]"
+            }
+        },
+        {
+            "type": "Microsoft.KeyVault/vaults/secrets",
+            "name": "[concat(variables('keyVaultName'), '/', 'EventHubConnectionStringSecret')]",
+            "location": "[parameters('location')]",
+            "apiVersion": "2019-09-01",
+            "dependsOn": [
+                "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]"
+            ],
+            "properties": {
+                "value": "[listKeys(resourceId('Microsoft.EventHub/namespaces/authorizationRules', parameters('eventHubNamespace'),'RootManageSharedAccessKey'), '2017-04-01').primaryConnectionString]"
             }
         }
     ],
